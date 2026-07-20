@@ -1,0 +1,5 @@
+/**
+ * Composants de mise en page (wrappent les pages).
+ *
+ * Exemple : layouts/MainLayout.jsx, layouts/AuthLayout.jsx
+ */

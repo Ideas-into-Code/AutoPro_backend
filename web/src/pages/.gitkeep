@@ -1,0 +1,6 @@
+/**
+ * Pages de l'application (une page = un composant de haut niveau).
+ * Les routes pointent vers les fichiers de ce dossier.
+ *
+ * Exemple : pages/Home.jsx, pages/Services.jsx
+ */

@@ -1,0 +1,35 @@
+@import 'tailwindcss';
+@import './styles/tokens.css';
+
+/* ── Styles de base ──────────────────────────────────────── */
+:root {
+  color-scheme: light dark;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  font-weight: var(--font-weight-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-neutral-50);
+  color: var(--color-neutral-900);
+  min-height: 100vh;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: var(--color-neutral-900);
+    color: var(--color-neutral-50);
+  }
+}

@@ -1,0 +1,6 @@
+/**
+ * Hooks React personnalisés partagés à travers l'application.
+ *
+ * Convention de nommage : use<NomDuHook>.js
+ * Exemple : hooks/useWindowSize.js, hooks/useAuth.js
+ */

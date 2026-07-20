@@ -1,0 +1,6 @@
+/**
+ * Composants réutilisables de l'interface.
+ * Chaque composant est un dossier avec index.jsx et optionnellement un fichier .css.
+ *
+ * Exemple : components/Button/index.jsx
+ */
