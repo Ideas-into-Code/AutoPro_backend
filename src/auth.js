@@ -38,7 +38,19 @@ const authRateLimiter = rateLimit({
 });
 
 function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if (typeof email !== 'string') {
+    return false;
+  }
+
+  if (email.includes(' ') || email.length < 5 || email.length > 254) {
+    return false;
+  }
+
+  const atIndex = email.indexOf('@');
+  const lastAtIndex = email.lastIndexOf('@');
+  const dotAfterAtIndex = email.indexOf('.', atIndex + 2);
+
+  return atIndex > 0 && atIndex === lastAtIndex && dotAfterAtIndex > atIndex + 1;
 }
 
 function isStrongPassword(password) {
@@ -140,7 +152,7 @@ router.post('/password-reset/request', (req, res) => {
   }
 
   const user = findUserByEmail(email);
-  let resetToken;
+  let resetToken = null;
 
   if (user) {
     resetToken = crypto.randomBytes(32).toString('hex');
