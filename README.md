@@ -91,3 +91,26 @@ Chaque samedi, chaque membre remet un compte rendu (CR) contenant :
 - [ ] Aucun fichier inutile
 - [ ] Commit conforme
 - [ ] Push vers la bonne branche
+
+## API Authentification (JWT)
+
+### Lancer le projet
+```bash
+npm install
+npm start
+```
+
+### Lancer les tests
+```bash
+npm test
+```
+
+### Endpoints
+- `POST /auth/signup` : création de compte (`Customer`, `Mechanic`, `Admin`)
+- `POST /auth/login` : connexion et génération du JWT
+- `POST /auth/password-reset/request` : demande de réinitialisation du mot de passe
+- `POST /auth/password-reset/confirm` : validation de la réinitialisation du mot de passe
+- `GET /auth/me` : endpoint protégé JWT (profil connecté)
+- `GET /auth/admin` : endpoint protégé avec rôle `Admin`
+
+Documentation OpenAPI: `docs/swagger.yaml`

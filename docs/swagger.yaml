@@ -1,0 +1,23 @@
+openapi: 3.0.3
+info:
+  title: AutoPro Auth API
+  version: 1.0.0
+paths:
+  /auth/signup:
+    post:
+      summary: Sign up
+  /auth/login:
+    post:
+      summary: Login
+  /auth/password-reset/request:
+    post:
+      summary: Request password reset
+  /auth/password-reset/confirm:
+    post:
+      summary: Confirm password reset
+  /auth/me:
+    get:
+      summary: Get current user from JWT
+  /auth/admin:
+    get:
+      summary: Admin-only endpoint
