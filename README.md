@@ -97,6 +97,7 @@ Chaque samedi, chaque membre remet un compte rendu (CR) contenant :
 ### Lancer le projet
 ```bash
 npm install
+export JWT_SECRET="votre-secret-jwt"
 npm start
 ```
 

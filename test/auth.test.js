@@ -4,8 +4,6 @@ const request = require('supertest');
 const app = require('../src/app');
 const { resetStore } = require('../src/authStore');
 
-process.env.NODE_ENV = 'test';
-
 test.beforeEach(() => {
   resetStore();
 });
@@ -25,6 +23,18 @@ test('signup and login return jwt token', async () => {
     .expect(200);
 
   assert.ok(login.body.token);
+});
+
+test('signup rejects invalid email and weak password', async () => {
+  await request(app)
+    .post('/auth/signup')
+    .send({ email: 'not-an-email', password: 'Pass1234!' })
+    .expect(400);
+
+  await request(app)
+    .post('/auth/signup')
+    .send({ email: 'valid@autopro.dev', password: 'weak' })
+    .expect(400);
 });
 
 test('jwt middleware protects /auth/me', async () => {

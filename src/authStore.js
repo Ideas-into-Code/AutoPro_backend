@@ -2,6 +2,10 @@
 const usersByEmail = new Map();
 let nextId = 1;
 
+if (process.env.NODE_ENV === 'production') {
+  throw new Error('Le store en mémoire ne doit pas être utilisé en production');
+}
+
 function resetStore() {
   usersByEmail.clear();
   nextId = 1;

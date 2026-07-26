@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const { rateLimit } = require('express-rate-limit');
 const { createUser, findUserByEmail } = require('./authStore');
 
 const router = express.Router();
@@ -14,39 +15,34 @@ const ROLES = Object.freeze({
 
 const VALID_ROLES = new Set(Object.values(ROLES));
 const JWT_SECRET = process.env.JWT_SECRET;
+const RESET_TOKEN_TTL_MS = 15 * 60 * 1000;
 
-if (process.env.NODE_ENV === 'production' && !JWT_SECRET) {
-  throw new Error('JWT_SECRET doit être défini en production');
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET doit être défini');
 }
 
 function issueToken(user) {
   return jwt.sign(
     { sub: String(user.id), email: user.email, role: user.role },
-    JWT_SECRET || 'dev-secret-change-me',
+    JWT_SECRET,
     { expiresIn: '1h' }
   );
 }
 
-const rateLimitState = new Map();
+const authRateLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 100,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { message: 'Trop de requêtes, réessayez plus tard' },
+});
 
-function rateLimitByIp({ max = 100, windowMs = 60_000 } = {}) {
-  return (req, res, next) => {
-    const key = `${req.ip}:${req.path}`;
-    const now = Date.now();
-    const current = rateLimitState.get(key);
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
 
-    if (!current || current.resetAt <= now) {
-      rateLimitState.set(key, { count: 1, resetAt: now + windowMs });
-      return next();
-    }
-
-    if (current.count >= max) {
-      return res.status(429).json({ message: 'Trop de requêtes, réessayez plus tard' });
-    }
-
-    current.count += 1;
-    return next();
-  };
+function isStrongPassword(password) {
+  return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(password);
 }
 
 function sanitizeUser(user) {
@@ -61,7 +57,7 @@ function authenticateJWT(req, res, next) {
 
   const token = authorization.slice(7);
   try {
-    req.user = jwt.verify(token, JWT_SECRET || 'dev-secret-change-me');
+    req.user = jwt.verify(token, JWT_SECRET);
     return next();
   } catch {
     return res.status(401).json({ message: 'Token invalide' });
@@ -82,6 +78,16 @@ router.post('/signup', async (req, res) => {
 
   if (!email || !password) {
     return res.status(400).json({ message: 'Email et mot de passe requis' });
+  }
+
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ message: 'Email invalide' });
+  }
+
+  if (!isStrongPassword(password)) {
+    return res
+      .status(400)
+      .json({ message: 'Mot de passe trop faible (8+ avec majuscule, minuscule, chiffre, symbole)' });
   }
 
   if (!VALID_ROLES.has(role)) {
@@ -105,6 +111,10 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ message: 'Email et mot de passe requis' });
   }
 
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ message: 'Email invalide' });
+  }
+
   const user = findUserByEmail(email);
   if (!user) {
     return res.status(401).json({ message: 'Identifiants invalides' });
@@ -125,13 +135,17 @@ router.post('/password-reset/request', (req, res) => {
     return res.status(400).json({ message: 'Email requis' });
   }
 
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ message: 'Email invalide' });
+  }
+
   const user = findUserByEmail(email);
   let resetToken;
 
   if (user) {
     resetToken = crypto.randomBytes(32).toString('hex');
     user.resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetTokenExpiresAt = Date.now() + 15 * 60 * 1000;
+    user.resetTokenExpiresAt = Date.now() + RESET_TOKEN_TTL_MS;
   }
 
   return res.status(200).json({
@@ -146,6 +160,16 @@ router.post('/password-reset/confirm', async (req, res) => {
     return res
       .status(400)
       .json({ message: 'Email, resetToken et newPassword requis' });
+  }
+
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ message: 'Email invalide' });
+  }
+
+  if (!isStrongPassword(newPassword)) {
+    return res
+      .status(400)
+      .json({ message: 'Mot de passe trop faible (8+ avec majuscule, minuscule, chiffre, symbole)' });
   }
 
   const user = findUserByEmail(email);
@@ -172,11 +196,11 @@ router.post('/password-reset/confirm', async (req, res) => {
   return res.status(200).json({ message: 'Mot de passe mis à jour' });
 });
 
-router.get('/me', rateLimitByIp(), authenticateJWT, (req, res) => {
+router.get('/me', authRateLimiter, authenticateJWT, (req, res) => {
   return res.status(200).json({ user: req.user });
 });
 
-router.get('/admin', rateLimitByIp(), authenticateJWT, authorizeRoles(ROLES.ADMIN), (_req, res) => {
+router.get('/admin', authRateLimiter, authenticateJWT, authorizeRoles(ROLES.ADMIN), (_req, res) => {
   return res.status(200).json({ message: 'Bienvenue admin' });
 });
 
