@@ -4,6 +4,8 @@ const request = require('supertest');
 const app = require('../src/app');
 const { resetStore } = require('../src/authStore');
 
+process.env.NODE_ENV = 'test';
+
 test.beforeEach(() => {
   resetStore();
 });

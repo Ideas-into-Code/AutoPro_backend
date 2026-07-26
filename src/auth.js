@@ -13,14 +13,40 @@ const ROLES = Object.freeze({
 });
 
 const VALID_ROLES = new Set(Object.values(ROLES));
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (process.env.NODE_ENV === 'production' && !JWT_SECRET) {
+  throw new Error('JWT_SECRET doit être défini en production');
+}
 
 function issueToken(user) {
   return jwt.sign(
     { sub: String(user.id), email: user.email, role: user.role },
-    JWT_SECRET,
+    JWT_SECRET || 'dev-secret-change-me',
     { expiresIn: '1h' }
   );
+}
+
+const rateLimitState = new Map();
+
+function rateLimitByIp({ max = 100, windowMs = 60_000 } = {}) {
+  return (req, res, next) => {
+    const key = `${req.ip}:${req.path}`;
+    const now = Date.now();
+    const current = rateLimitState.get(key);
+
+    if (!current || current.resetAt <= now) {
+      rateLimitState.set(key, { count: 1, resetAt: now + windowMs });
+      return next();
+    }
+
+    if (current.count >= max) {
+      return res.status(429).json({ message: 'Trop de requêtes, réessayez plus tard' });
+    }
+
+    current.count += 1;
+    return next();
+  };
 }
 
 function sanitizeUser(user) {
@@ -35,7 +61,7 @@ function authenticateJWT(req, res, next) {
 
   const token = authorization.slice(7);
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    req.user = jwt.verify(token, JWT_SECRET || 'dev-secret-change-me');
     return next();
   } catch {
     return res.status(401).json({ message: 'Token invalide' });
@@ -110,7 +136,7 @@ router.post('/password-reset/request', (req, res) => {
 
   return res.status(200).json({
     message: 'Si le compte existe, un lien de réinitialisation a été généré',
-    ...(process.env.NODE_ENV !== 'production' && resetToken ? { resetToken } : {}),
+    ...(process.env.NODE_ENV === 'test' && resetToken ? { resetToken } : {}),
   });
 });
 
@@ -146,11 +172,11 @@ router.post('/password-reset/confirm', async (req, res) => {
   return res.status(200).json({ message: 'Mot de passe mis à jour' });
 });
 
-router.get('/me', authenticateJWT, (req, res) => {
+router.get('/me', rateLimitByIp(), authenticateJWT, (req, res) => {
   return res.status(200).json({ user: req.user });
 });
 
-router.get('/admin', authenticateJWT, authorizeRoles(ROLES.ADMIN), (_req, res) => {
+router.get('/admin', rateLimitByIp(), authenticateJWT, authorizeRoles(ROLES.ADMIN), (_req, res) => {
   return res.status(200).json({ message: 'Bienvenue admin' });
 });
 

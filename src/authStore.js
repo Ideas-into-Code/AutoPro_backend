@@ -1,3 +1,4 @@
+// In-memory store for local development/tests. Replace with persistent storage in production.
 const usersByEmail = new Map();
 let nextId = 1;
 
