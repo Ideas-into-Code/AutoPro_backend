@@ -26,8 +26,4 @@ CREATE TABLE vehicles (
 );
 
 -- Index on owner for retrieving a user's fleet
-CREATE INDEX idx_vehicles_owner_id      ON vehicles (owner_id);
--- Index on license plate for identification lookups
-CREATE INDEX idx_vehicles_license_plate ON vehicles (license_plate);
--- Index on VIN for identification lookups
-CREATE INDEX idx_vehicles_vin           ON vehicles (vin);
+CREATE INDEX idx_vehicles_owner_id ON vehicles (owner_id);

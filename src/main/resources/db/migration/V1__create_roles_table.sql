@@ -6,6 +6,3 @@ CREATE TABLE roles (
     name        VARCHAR(50)     NOT NULL UNIQUE,
     description VARCHAR(255)
 );
-
--- Index on the role name for fast lookups
-CREATE INDEX idx_roles_name ON roles (name);
