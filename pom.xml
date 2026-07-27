@@ -21,6 +21,7 @@
         <java.version>17</java.version>
         <jjwt.version>0.12.6</jjwt.version>
         <springdoc.version>2.5.0</springdoc.version>
+        <cloudinary.version>1.38.0</cloudinary.version>
     </properties>
 
     <dependencies>
@@ -96,6 +97,13 @@
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>${springdoc.version}</version>
+        </dependency>
+
+        <!-- Cloudinary -->
+        <dependency>
+            <groupId>com.cloudinary</groupId>
+            <artifactId>cloudinary-http45</artifactId>
+            <version>${cloudinary.version}</version>
         </dependency>
 
         <!-- Test -->
