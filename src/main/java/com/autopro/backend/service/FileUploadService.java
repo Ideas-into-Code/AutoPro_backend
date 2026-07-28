@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import com.cloudinary.AuthToken;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +29,9 @@ public class FileUploadService {
 
     @Value("${upload.allowed-document-types}")
     private String allowedDocumentTypes;
+
+    @Value("${cloudinary.auth-token-key:}")
+    private String authTokenKey;
 
     public UploadResponse uploadProfilePicture(MultipartFile file) throws IOException {
         validateFile(file, allowedImageTypes);
@@ -55,13 +59,19 @@ public class FileUploadService {
     }
 
     /** Génère une URL signée avec expiration (en secondes). */
-    public String generateSignedUrl(String publicId, int expiresInSeconds) {
-        long expiresAt = System.currentTimeMillis() / 1000 + expiresInSeconds;
-        return cloudinary.url()
-                .signed(true)
-                .generate(publicId + "?_exp=" + expiresAt);
+   public String generateSignedUrl(String publicId, int expiresInSeconds) {
+    if (authTokenKey == null || authTokenKey.isBlank()) {
+        throw new IllegalStateException(
+                "Génération d'URL signée à expiration non configurée : " +
+                "CLOUDINARY_AUTH_TOKEN_KEY est manquant (add-on Token-based authentication requis)");
     }
-
+    long expiresAt = System.currentTimeMillis() / 1000 + expiresInSeconds;
+    AuthToken authToken = new AuthToken(authTokenKey).expiration(expiresAt);
+    return cloudinary.url()
+            .signed(true)
+            .authToken(authToken)
+            .generate(publicId);
+}
     private void validateFile(MultipartFile file, String allowedTypesConfig) {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("Le fichier est vide");
