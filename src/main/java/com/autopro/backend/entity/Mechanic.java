@@ -44,6 +44,11 @@ public class Mechanic {
     @Builder.Default
     private Boolean isAvailable = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "validation_status", nullable = false, length = 20)
+    @Builder.Default
+    private ValidationStatus validationStatus = ValidationStatus.PENDING;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
