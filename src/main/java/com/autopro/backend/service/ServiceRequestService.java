@@ -4,6 +4,7 @@ import com.autopro.backend.dto.servicerequest.CreateServiceRequestRequest;
 import com.autopro.backend.dto.servicerequest.ServiceRequestResponse;
 import com.autopro.backend.dto.servicerequest.UpdateServiceRequestStatusRequest;
 import com.autopro.backend.entity.*;
+import com.autopro.backend.exception.ResourceNotFoundException;
 import com.autopro.backend.repository.MechanicRepository;
 import com.autopro.backend.repository.ServiceRequestRepository;
 import com.autopro.backend.repository.UserRepository;
@@ -14,14 +15,31 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ServiceRequestService {
+
+    private static final Map<ServiceRequestStatus, Set<ServiceRequestStatus>> ALLOWED_TRANSITIONS =
+            new EnumMap<>(ServiceRequestStatus.class);
+
+    static {
+        ALLOWED_TRANSITIONS.put(ServiceRequestStatus.PENDING,
+                EnumSet.of(ServiceRequestStatus.ACCEPTED, ServiceRequestStatus.CANCELLED));
+        ALLOWED_TRANSITIONS.put(ServiceRequestStatus.ACCEPTED,
+                EnumSet.of(ServiceRequestStatus.IN_PROGRESS, ServiceRequestStatus.CANCELLED));
+        ALLOWED_TRANSITIONS.put(ServiceRequestStatus.IN_PROGRESS,
+                EnumSet.of(ServiceRequestStatus.COMPLETED, ServiceRequestStatus.CANCELLED));
+        ALLOWED_TRANSITIONS.put(ServiceRequestStatus.COMPLETED, EnumSet.noneOf(ServiceRequestStatus.class));
+        ALLOWED_TRANSITIONS.put(ServiceRequestStatus.CANCELLED, EnumSet.noneOf(ServiceRequestStatus.class));
+    }
 
     private final ServiceRequestRepository serviceRequestRepository;
     private final UserRepository userRepository;
@@ -35,9 +53,9 @@ public class ServiceRequestService {
         Vehicle vehicle = null;
         if (request.getVehicleId() != null) {
             vehicle = vehicleRepository.findById(request.getVehicleId())
-                    .orElseThrow(() -> new IllegalArgumentException("Véhicule introuvable: " + request.getVehicleId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Véhicule introuvable: " + request.getVehicleId()));
             if (!vehicle.getOwner().getId().equals(client.getId())) {
-                throw new IllegalArgumentException("Ce véhicule ne vous appartient pas");
+                throw new SecurityException("Ce véhicule ne vous appartient pas");
             }
         }
 
@@ -99,24 +117,38 @@ public class ServiceRequestService {
 
         if ("ROLE_CLIENT".equals(roleName)) {
             boolean isOwner = sr.getClient().getId().equals(user.getId());
+            if (!isOwner) {
+                throw new SecurityException("Action non autorisée pour ce client");
+            }
             boolean cancelling = request.getStatus() == ServiceRequestStatus.CANCELLED;
-            if (!isOwner || !cancelling) {
-                throw new IllegalArgumentException("Action non autorisée pour ce client");
+            if (!cancelling) {
+                throw new IllegalArgumentException("Un client ne peut qu'annuler sa demande");
             }
         } else if ("ROLE_MECHANIC".equals(roleName)) {
             Mechanic mechanic = mechanicRepository.findByUserId(user.getId())
-                    .orElseThrow(() -> new IllegalArgumentException("Profil mécanicien introuvable"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Profil mécanicien introuvable"));
             if (sr.getMechanic() == null) {
                 sr.setMechanic(mechanic); // le mécanicien prend en charge la demande
             } else if (!sr.getMechanic().getId().equals(mechanic.getId())) {
-                throw new IllegalArgumentException("Cette demande est assignée à un autre mécanicien");
+                throw new SecurityException("Cette demande est assignée à un autre mécanicien");
             }
         }
         // ROLE_ADMIN : autorisé sans restriction
 
+        validateTransition(sr.getStatus(), request.getStatus());
         sr.setStatus(request.getStatus());
         serviceRequestRepository.save(sr);
         return toResponse(sr);
+    }
+
+    private void validateTransition(ServiceRequestStatus from, ServiceRequestStatus to) {
+        if (from == to) {
+            return;
+        }
+        Set<ServiceRequestStatus> allowed = ALLOWED_TRANSITIONS.getOrDefault(from, Set.of());
+        if (!allowed.contains(to)) {
+            throw new IllegalArgumentException("Transition de statut invalide : " + from + " -> " + to);
+        }
     }
 
     private void checkReadAccess(String email, ServiceRequest sr) {
@@ -135,12 +167,12 @@ public class ServiceRequestService {
             if (isAssigned || isPending)
                 return;
         }
-        throw new IllegalArgumentException("Accès non autorisé à cette demande");
+        throw new SecurityException("Accès non autorisé à cette demande");
     }
 
     private ServiceRequest findByIdOrThrow(Long id) {
         return serviceRequestRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Demande de service introuvable: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Demande de service introuvable: " + id));
     }
 
     private User getUser(String email) {

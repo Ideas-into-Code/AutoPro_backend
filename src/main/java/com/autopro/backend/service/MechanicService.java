@@ -4,6 +4,7 @@ import com.autopro.backend.dto.mechanic.MechanicResponse;
 import com.autopro.backend.dto.mechanic.UpdateMechanicProfileRequest;
 import com.autopro.backend.entity.Mechanic;
 import com.autopro.backend.entity.User;
+import com.autopro.backend.exception.ResourceNotFoundException;
 import com.autopro.backend.repository.MechanicRepository;
 import com.autopro.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +33,7 @@ public class MechanicService {
 
     public MechanicResponse getById(Long id) {
         Mechanic mechanic = mechanicRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Mécanicien introuvable: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Mécanicien introuvable: " + id));
         return toResponse(mechanic);
     }
 
