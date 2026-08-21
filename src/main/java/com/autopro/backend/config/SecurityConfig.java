@@ -36,6 +36,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/ws/**").permitAll()
+                // Appelé par PayDunya (pas par le client de l'app) : pas de JWT disponible,
+                // l'authenticité est vérifiée via le hash PayDunya dans PaymentService.
+                .requestMatchers("/api/payments/webhook").permitAll()
                 .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                 .anyRequest().authenticated()
             )

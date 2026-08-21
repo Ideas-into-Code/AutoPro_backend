@@ -37,6 +37,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Identifiants invalides"));
     }
 
+    @ExceptionHandler(PaymentGatewayException.class)
+    public ResponseEntity<Map<String, String>> handlePaymentGateway(PaymentGatewayException ex) {
+        log.error("Payment gateway error", ex);
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(Map.of("error", "Le prestataire de paiement est indisponible, réessayez plus tard"));
+    }
+
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<Map<String, String>> handleMaxUploadSize(MaxUploadSizeExceededException ex) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
