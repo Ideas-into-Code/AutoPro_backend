@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -56,4 +57,12 @@ public class Mechanic {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @Column(name = "average_rating", nullable = false, precision = 3, scale = 2)
+    @Builder.Default
+    private BigDecimal averageRating = BigDecimal.ZERO;
+
+    @Column(name = "review_count", nullable = false)
+    @Builder.Default
+    private Integer reviewCount = 0;
 }
