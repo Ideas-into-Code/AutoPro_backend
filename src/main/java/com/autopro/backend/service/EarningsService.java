@@ -3,6 +3,7 @@ package com.autopro.backend.service;
 import com.autopro.backend.dto.earnings.EarningsReportDTO;
 import com.autopro.backend.entity.InterventionStatus;
 import com.autopro.backend.entity.Mechanic;
+import com.autopro.backend.exception.ResourceNotFoundException;
 import com.autopro.backend.repository.InterventionRepository;
 import com.autopro.backend.repository.MechanicRepository;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +35,7 @@ public class EarningsService {
     public EarningsReportDTO getEarningsReport(Long mechanicId, LocalDate reference) {
         // Résolution du mécanicien (lève IllegalArgumentException si introuvable)
         Mechanic mechanic = mechanicRepository.findById(mechanicId)
-                .orElseThrow(() -> new IllegalArgumentException("Mécanicien introuvable : " + mechanicId));
+                .orElseThrow(() -> new ResourceNotFoundException("Mécanicien introuvable : " + mechanicId));
 
         // --- Bornes journalières ---
         LocalDateTime dayStart   = reference.atStartOfDay();
