@@ -5,6 +5,7 @@ import com.autopro.backend.dto.admin.MechanicDetailDTO;
 import com.autopro.backend.dto.admin.UserDetailDTO;
 import com.autopro.backend.entity.Mechanic;
 import com.autopro.backend.entity.ValidationStatus;
+import com.autopro.backend.exception.ResourceNotFoundException;
 import com.autopro.backend.repository.MechanicRepository;
 import com.autopro.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +43,7 @@ public class AdminService {
     @Transactional
     public MechanicDetailDTO validateMechanic(Long mechanicId, boolean approved) {
         Mechanic mechanic = mechanicRepository.findById(mechanicId)
-                .orElseThrow(() -> new IllegalArgumentException("Mécanicien introuvable : " + mechanicId));
+                .orElseThrow(() -> new ResourceNotFoundException("Mécanicien introuvable : " + mechanicId));
         mechanic.setValidationStatus(approved ? ValidationStatus.APPROVED : ValidationStatus.REJECTED);
         mechanicRepository.save(mechanic);
         return MechanicDetailDTO.from(mechanic);
