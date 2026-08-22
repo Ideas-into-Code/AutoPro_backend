@@ -25,19 +25,21 @@ public interface MechanicRepository extends JpaRepository<Mechanic, Long> {
 
     List<Mechanic> findBySpecializationContainingIgnoreCase(String specialization);
 
+    /**
+     * Recherche PostGIS : ST_DWithin s'appuie sur l'index GIST de "location" pour ne
+     * calculer la distance exacte (ST_Distance) que sur les lignes déjà pré-filtrées
+     * par la bounding box de l'index, au lieu de scanner toute la table (V16).
+     */
     @Query(value =
         "SELECT id, distance_km AS distanceKm FROM ( " +
         "  SELECT m.id AS id, " +
-        "    (6371 * acos(least(1.0, " +
-        "        cos(radians(:lat)) * cos(radians(m.latitude)) * cos(radians(m.longitude) - radians(:lng)) " +
-        "        + sin(radians(:lat)) * sin(radians(m.latitude)) " +
-        "    ))) AS distance_km " +
+        "    ST_Distance(m.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) / 1000.0 AS distance_km " +
         "  FROM mechanics m " +
-        "  WHERE m.latitude IS NOT NULL AND m.longitude IS NOT NULL " +
+        "  WHERE m.location IS NOT NULL " +
+        "    AND ST_DWithin(m.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radiusKm * 1000) " +
         "    AND (CAST(:specialization AS varchar) IS NULL OR m.specialization ILIKE CONCAT('%', CAST(:specialization AS varchar), '%')) " +
         "    AND (:onlyAvailable = false OR m.is_available = true) " +
         ") sub " +
-        "WHERE distance_km <= :radiusKm " +
         "ORDER BY distance_km ASC",
         nativeQuery = true)
     List<MechanicDistanceProjection> findNearby(

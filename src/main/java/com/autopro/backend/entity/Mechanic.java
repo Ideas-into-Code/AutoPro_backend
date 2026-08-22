@@ -62,4 +62,9 @@ public class Mechanic {
 
     @Column(name = "longitude")
     private Double longitude;
+
+    // La colonne "location" (geography Point, PostGIS) n'est pas mappée ici : elle est
+    // tenue synchronisée par un trigger SQL (V16) à partir de latitude/longitude et n'est
+    // utilisée que dans la requête native findNearby(). Volontairement pas de dépendance
+    // hibernate-spatial/JTS puisque le code applicatif ne manipule jamais de géométrie.
 }
