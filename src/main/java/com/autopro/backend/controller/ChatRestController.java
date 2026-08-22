@@ -4,6 +4,7 @@ import com.autopro.backend.dto.chat.ChatMessageDTO;
 import com.autopro.backend.dto.chat.ChatRoomDTO;
 import com.autopro.backend.dto.chat.CreateChatRoomRequest;
 import com.autopro.backend.entity.User;
+import com.autopro.backend.exception.ResourceNotFoundException;
 import com.autopro.backend.repository.UserRepository;
 import com.autopro.backend.service.ChatService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,6 +52,6 @@ public class ChatRestController {
 
     private User resolveUser(Principal principal) {
         return userRepository.findByEmail(principal.getName())
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 }

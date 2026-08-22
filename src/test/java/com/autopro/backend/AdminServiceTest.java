@@ -103,7 +103,7 @@ class AdminServiceTest {
         when(mechanicRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> adminService.validateMechanic(99L, true))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(com.autopro.backend.exception.ResourceNotFoundException.class)
                 .hasMessageContaining("99");
     }
 

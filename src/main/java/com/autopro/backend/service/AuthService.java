@@ -32,15 +32,21 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
+    private static final List<String> SELF_SIGNUP_ALLOWED_ROLES = List.of("ROLE_CLIENT", "ROLE_MECHANIC");
+
     @Transactional
     public AuthResponse signUp(SignUpRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("Email already in use");
         }
-        String roleName = (request.getRole() != null && !request.getRole().isBlank())
+        // ROLE_ADMIN ne doit jamais pouvoir être obtenu via l'inscription publique.
+        String requestedRole = (request.getRole() != null && !request.getRole().isBlank())
                 ? request.getRole() : "ROLE_CLIENT";
-        Role role = roleRepository.findByName(roleName)
-                .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleName));
+        if (!SELF_SIGNUP_ALLOWED_ROLES.contains(requestedRole)) {
+            throw new IllegalArgumentException("Rôle non autorisé pour l'inscription : " + requestedRole);
+        }
+        Role role = roleRepository.findByName(requestedRole)
+                .orElseThrow(() -> new IllegalArgumentException("Role not found: " + requestedRole));
 
         User user = User.builder()
                 .firstName(request.getFirstName())
@@ -66,15 +72,21 @@ public class AuthService {
 
     @Transactional
     public String requestPasswordReset(PasswordResetRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        // Ne pas révéler si l'email existe ou non (énumération de comptes) : même réponse dans les deux cas.
+        var userOpt = userRepository.findByEmail(request.getEmail());
+        if (userOpt.isEmpty()) {
+            return "Si un compte existe pour cet email, un lien de réinitialisation a été envoyé.";
+        }
         String token = UUID.randomUUID().toString();
         resetTokenRepository.save(PasswordResetToken.builder()
                 .token(token)
-                .user(user)
+                .user(userOpt.get())
                 .expiresAt(LocalDateTime.now().plusHours(1))
                 .build());
-        // Production : envoyer le token par email
+        // TODO(#24/notifications) : envoyer le token par email au lieu de le renvoyer dans la réponse HTTP.
+        // Tant qu'il n'y a pas de service d'envoi d'email, le token est retourné directement ici, ce qui
+        // permet à quiconque de déclencher ET récupérer un reset token pour N'IMPORTE QUEL email (prise de
+        // contrôle de compte). Ne pas déployer ce endpoint tel quel en production.
         return token;
     }
 

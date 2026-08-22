@@ -119,7 +119,7 @@ class EarningsServiceTest {
         when(mechanicRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> earningsService.getEarningsReport(99L, LocalDate.now()))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(com.autopro.backend.exception.ResourceNotFoundException.class)
                 .hasMessageContaining("99");
     }
 }
