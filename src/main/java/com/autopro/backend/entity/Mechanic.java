@@ -65,4 +65,10 @@ public class Mechanic {
     @Column(name = "review_count", nullable = false)
     @Builder.Default
     private Integer reviewCount = 0;
+
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
 }

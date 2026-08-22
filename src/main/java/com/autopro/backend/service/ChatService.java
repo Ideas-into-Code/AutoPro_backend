@@ -4,6 +4,7 @@ import com.autopro.backend.dto.chat.*;
 import com.autopro.backend.entity.ChatMessage;
 import com.autopro.backend.entity.ChatRoom;
 import com.autopro.backend.entity.User;
+import com.autopro.backend.exception.ResourceNotFoundException;
 import com.autopro.backend.repository.ChatMessageRepository;
 import com.autopro.backend.repository.ChatRoomRepository;
 import com.autopro.backend.repository.UserRepository;
@@ -54,7 +55,7 @@ public class ChatService {
     @Transactional
     public ChatMessageDTO sendMessage(SendMessageRequest request, User sender) {
         ChatRoom chatRoom = chatRoomRepository.findById(request.getChatRoomId())
-                .orElseThrow(() -> new IllegalArgumentException("Chat room not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Chat room not found"));
 
         ChatMessage message = ChatMessage.builder()
                 .chatRoom(chatRoom)
@@ -75,7 +76,7 @@ public class ChatService {
     @Transactional(readOnly = true)
     public List<ChatMessageDTO> getChatHistory(Long chatRoomId, User requester, int page, int size) {
         ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
-                .orElseThrow(() -> new IllegalArgumentException("Chat room not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Chat room not found"));
         boolean isMember = chatRoom.getParticipants().stream()
                 .anyMatch(p -> p.getId().equals(requester.getId()));
         if (!isMember) {
