@@ -35,6 +35,9 @@ class AuthServiceTest {
     private RoleRepository roleRepository;
 
     @Mock
+    private com.autopro.backend.repository.MechanicRepository mechanicRepository;
+
+    @Mock
     private PasswordResetTokenRepository resetTokenRepository;
 
     @Mock
@@ -95,7 +98,11 @@ class AuthServiceTest {
 
         var response = authService.signUp(request);
 
-        assertThat(response.getRole()).isEqualTo("ROLE_MECHANIC");
+        assertThat(response.getUser().getRole()).isEqualTo("ROLE_MECHANIC");
+        assertThat(response.getToken()).isEqualTo("token");
+        assertThat(response.getType()).isEqualTo("Bearer");
+        // Un profil mécanicien doit être créé, sinon le compte est inutilisable.
+        verify(mechanicRepository).save(any(com.autopro.backend.entity.Mechanic.class));
     }
 
     @Test

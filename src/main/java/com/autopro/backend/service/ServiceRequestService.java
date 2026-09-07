@@ -1,14 +1,18 @@
 package com.autopro.backend.service;
 
+import com.autopro.backend.dto.payment.PaymentResponse;
 import com.autopro.backend.dto.servicerequest.CreateServiceRequestRequest;
 import com.autopro.backend.dto.servicerequest.ServiceRequestResponse;
 import com.autopro.backend.dto.servicerequest.UpdateServiceRequestStatusRequest;
 import com.autopro.backend.entity.*;
 import com.autopro.backend.exception.ResourceNotFoundException;
 import com.autopro.backend.repository.MechanicRepository;
+import com.autopro.backend.repository.PaymentRepository;
 import com.autopro.backend.repository.ServiceRequestRepository;
 import com.autopro.backend.repository.UserRepository;
 import com.autopro.backend.repository.VehicleRepository;
+
+import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -45,6 +49,8 @@ public class ServiceRequestService {
     private final UserRepository userRepository;
     private final MechanicRepository mechanicRepository;
     private final VehicleRepository vehicleRepository;
+    private final PaymentRepository paymentRepository;
+    private final PaymentService paymentService;
 
     @Transactional
     public ServiceRequestResponse create(String email, CreateServiceRequestRequest request) {
@@ -136,7 +142,52 @@ public class ServiceRequestService {
         // ROLE_ADMIN : autorisé sans restriction
 
         validateTransition(sr.getStatus(), request.getStatus());
+
+        if (request.getStatus() == ServiceRequestStatus.COMPLETED && sr.getPrice() == null) {
+            throw new IllegalArgumentException(
+                    "Fixez le prix de l'intervention avant de la marquer comme terminée");
+        }
+
         sr.setStatus(request.getStatus());
+        serviceRequestRepository.save(sr);
+
+        // Effets de bord liés au paiement en espèces.
+        if (request.getStatus() == ServiceRequestStatus.COMPLETED) {
+            paymentService.createPendingForCompletedRequest(sr);
+        } else if (request.getStatus() == ServiceRequestStatus.CANCELLED) {
+            paymentService.cancelForRequest(sr);
+        }
+
+        return toResponse(sr);
+    }
+
+    /**
+     * Fixe le prix convenu de l'intervention. Réservé au mécanicien assigné et à
+     * l'admin, uniquement tant que la demande est acceptée ou en cours.
+     */
+    @Transactional
+    public ServiceRequestResponse setPrice(String email, Long id, BigDecimal amount) {
+        ServiceRequest sr = findByIdOrThrow(id);
+        User user = getUser(email);
+        String roleName = user.getRole().getName();
+
+        if ("ROLE_MECHANIC".equals(roleName)) {
+            Mechanic mechanic = mechanicRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Profil mécanicien introuvable"));
+            if (sr.getMechanic() == null || !sr.getMechanic().getId().equals(mechanic.getId())) {
+                throw new SecurityException("Cette demande ne vous est pas assignée");
+            }
+        } else if (!"ROLE_ADMIN".equals(roleName)) {
+            throw new SecurityException("Seul le mécanicien assigné peut fixer le prix");
+        }
+
+        if (sr.getStatus() != ServiceRequestStatus.ACCEPTED
+                && sr.getStatus() != ServiceRequestStatus.IN_PROGRESS) {
+            throw new IllegalArgumentException(
+                    "Le prix ne peut être fixé que sur une demande acceptée ou en cours");
+        }
+
+        sr.setPrice(amount);
         serviceRequestRepository.save(sr);
         return toResponse(sr);
     }
@@ -195,6 +246,10 @@ public class ServiceRequestService {
                         : null)
                 .description(sr.getDescription())
                 .status(sr.getStatus())
+                .price(sr.getPrice())
+                .payment(paymentRepository.findByServiceRequestId(sr.getId())
+                        .map(PaymentResponse::from)
+                        .orElse(null))
                 .address(sr.getAddress())
                 .latitude(sr.getLatitude())
                 .longitude(sr.getLongitude())
