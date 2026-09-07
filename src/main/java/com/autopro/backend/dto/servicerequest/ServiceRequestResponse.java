@@ -1,9 +1,11 @@
 package com.autopro.backend.dto.servicerequest;
 
+import com.autopro.backend.dto.payment.PaymentResponse;
 import com.autopro.backend.entity.ServiceRequestStatus;
 import lombok.Builder;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -23,6 +25,12 @@ public class ServiceRequestResponse {
 
     private String description;
     private ServiceRequestStatus status;
+
+    /** Prix convenu, {@code null} tant que le mécanicien ne l'a pas fixé. */
+    private BigDecimal price;
+
+    /** Paiement associé, {@code null} tant que la demande n'est pas terminée. */
+    private PaymentResponse payment;
 
     private String address;
     private Double latitude;

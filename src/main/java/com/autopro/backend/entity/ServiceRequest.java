@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -49,6 +50,14 @@ public class ServiceRequest {
     @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
     private ServiceRequestStatus status = ServiceRequestStatus.PENDING;
+
+    /**
+     * Prix convenu de l'intervention, fixé par le mécanicien (ou l'admin) une
+     * fois la demande acceptée. Doit être renseigné avant le passage à
+     * {@code COMPLETED} : c'est le montant du paiement en espèces.
+     */
+    @Column(name = "price", precision = 10, scale = 2)
+    private BigDecimal price;
 
     @Column(name = "address", length = 255)
     private String address;

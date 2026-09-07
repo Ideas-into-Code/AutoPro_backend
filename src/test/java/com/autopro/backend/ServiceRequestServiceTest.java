@@ -6,10 +6,13 @@ import com.autopro.backend.dto.servicerequest.UpdateServiceRequestStatusRequest;
 import com.autopro.backend.entity.*;
 import com.autopro.backend.exception.ResourceNotFoundException;
 import com.autopro.backend.repository.MechanicRepository;
+import com.autopro.backend.repository.PaymentRepository;
 import com.autopro.backend.repository.ServiceRequestRepository;
 import com.autopro.backend.repository.UserRepository;
 import com.autopro.backend.repository.VehicleRepository;
+import com.autopro.backend.service.PaymentService;
 import com.autopro.backend.service.ServiceRequestService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -38,8 +41,19 @@ class ServiceRequestServiceTest {
     @Mock
     private VehicleRepository vehicleRepository;
 
+    @Mock
+    private PaymentRepository paymentRepository;
+
+    @Mock
+    private PaymentService paymentService;
+
     @InjectMocks
     private ServiceRequestService serviceRequestService;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(paymentRepository.findByServiceRequestId(any())).thenReturn(Optional.empty());
+    }
 
     private User buildUser(Long id, String roleName) {
         Role role = Role.builder().id(1L).name(roleName).build();
@@ -222,6 +236,59 @@ class ServiceRequestServiceTest {
         ServiceRequestResponse response = serviceRequestService.updateStatus("user9@example.com", 100L, request);
 
         assertThat(response.getStatus()).isEqualTo(ServiceRequestStatus.ACCEPTED);
+    }
+
+    @Test
+    void setPrice_assignedMechanicSetsPriceOnAcceptedRequest() {
+        User mechanicUser = buildUser(2L, "ROLE_MECHANIC");
+        Mechanic mechanic = buildMechanic(10L, mechanicUser);
+        ServiceRequest sr = buildRequest(100L, buildUser(1L, "ROLE_CLIENT"), mechanic, ServiceRequestStatus.ACCEPTED);
+        when(serviceRequestRepository.findById(100L)).thenReturn(Optional.of(sr));
+        when(userRepository.findByEmail("user2@example.com")).thenReturn(Optional.of(mechanicUser));
+        when(mechanicRepository.findByUserId(2L)).thenReturn(Optional.of(mechanic));
+        when(serviceRequestRepository.save(sr)).thenReturn(sr);
+
+        ServiceRequestResponse response =
+                serviceRequestService.setPrice("user2@example.com", 100L, new java.math.BigDecimal("15000"));
+
+        assertThat(response.getPrice()).isEqualByComparingTo("15000");
+    }
+
+    @Test
+    void updateStatus_cannotCompleteWithoutPrice() {
+        User mechanicUser = buildUser(2L, "ROLE_MECHANIC");
+        Mechanic mechanic = buildMechanic(10L, mechanicUser);
+        ServiceRequest sr = buildRequest(100L, buildUser(1L, "ROLE_CLIENT"), mechanic, ServiceRequestStatus.IN_PROGRESS);
+        when(serviceRequestRepository.findById(100L)).thenReturn(Optional.of(sr));
+        when(userRepository.findByEmail("user2@example.com")).thenReturn(Optional.of(mechanicUser));
+        when(mechanicRepository.findByUserId(2L)).thenReturn(Optional.of(mechanic));
+
+        UpdateServiceRequestStatusRequest request = new UpdateServiceRequestStatusRequest();
+        request.setStatus(ServiceRequestStatus.COMPLETED);
+
+        assertThatThrownBy(() -> serviceRequestService.updateStatus("user2@example.com", 100L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("prix");
+    }
+
+    @Test
+    void updateStatus_completingWithPriceTriggersPaymentCreation() {
+        User mechanicUser = buildUser(2L, "ROLE_MECHANIC");
+        Mechanic mechanic = buildMechanic(10L, mechanicUser);
+        ServiceRequest sr = buildRequest(100L, buildUser(1L, "ROLE_CLIENT"), mechanic, ServiceRequestStatus.IN_PROGRESS);
+        sr.setPrice(new java.math.BigDecimal("15000"));
+        when(serviceRequestRepository.findById(100L)).thenReturn(Optional.of(sr));
+        when(userRepository.findByEmail("user2@example.com")).thenReturn(Optional.of(mechanicUser));
+        when(mechanicRepository.findByUserId(2L)).thenReturn(Optional.of(mechanic));
+        when(serviceRequestRepository.save(sr)).thenReturn(sr);
+
+        UpdateServiceRequestStatusRequest request = new UpdateServiceRequestStatusRequest();
+        request.setStatus(ServiceRequestStatus.COMPLETED);
+
+        ServiceRequestResponse response = serviceRequestService.updateStatus("user2@example.com", 100L, request);
+
+        assertThat(response.getStatus()).isEqualTo(ServiceRequestStatus.COMPLETED);
+        verify(paymentService).createPendingForCompletedRequest(sr);
     }
 
     @Test

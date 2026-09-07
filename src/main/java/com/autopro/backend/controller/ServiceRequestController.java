@@ -1,8 +1,12 @@
 package com.autopro.backend.controller;
 
+import com.autopro.backend.dto.payment.CollectPaymentRequest;
+import com.autopro.backend.dto.payment.PaymentResponse;
 import com.autopro.backend.dto.servicerequest.CreateServiceRequestRequest;
 import com.autopro.backend.dto.servicerequest.ServiceRequestResponse;
+import com.autopro.backend.dto.servicerequest.SetPriceRequest;
 import com.autopro.backend.dto.servicerequest.UpdateServiceRequestStatusRequest;
+import com.autopro.backend.service.PaymentService;
 import com.autopro.backend.service.ServiceRequestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -23,6 +27,7 @@ import java.util.List;
 public class ServiceRequestController {
 
     private final ServiceRequestService serviceRequestService;
+    private final PaymentService paymentService;
 
     @PostMapping
     @Operation(summary = "Créer une nouvelle demande de service")
@@ -52,5 +57,32 @@ public class ServiceRequestController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateServiceRequestStatusRequest request) {
         return ResponseEntity.ok(serviceRequestService.updateStatus(authentication.getName(), id, request));
+    }
+
+    @PatchMapping("/{id}/price")
+    @Operation(summary = "Fixer le prix convenu de l'intervention (mécanicien assigné ou admin)")
+    public ResponseEntity<ServiceRequestResponse> setPrice(
+            Authentication authentication,
+            @PathVariable Long id,
+            @Valid @RequestBody SetPriceRequest request) {
+        return ResponseEntity.ok(
+                serviceRequestService.setPrice(authentication.getName(), id, request.getAmount()));
+    }
+
+    @GetMapping("/{id}/payment")
+    @Operation(summary = "Consulter le paiement associé à une demande")
+    public ResponseEntity<PaymentResponse> getPayment(
+            Authentication authentication, @PathVariable Long id) {
+        return ResponseEntity.ok(paymentService.getForRequest(authentication.getName(), id));
+    }
+
+    @PostMapping("/{id}/payment/collect")
+    @Operation(summary = "Confirmer l'encaissement des espèces (mécanicien assigné ou admin)")
+    public ResponseEntity<PaymentResponse> collectPayment(
+            Authentication authentication,
+            @PathVariable Long id,
+            @Valid @RequestBody(required = false) CollectPaymentRequest request) {
+        String notes = request != null ? request.getNotes() : null;
+        return ResponseEntity.ok(paymentService.collect(authentication.getName(), id, notes));
     }
 }
