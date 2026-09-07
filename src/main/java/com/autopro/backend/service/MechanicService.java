@@ -4,6 +4,7 @@ import com.autopro.backend.dto.mechanic.MechanicResponse;
 import com.autopro.backend.dto.mechanic.UpdateMechanicProfileRequest;
 import com.autopro.backend.entity.Mechanic;
 import com.autopro.backend.entity.User;
+import com.autopro.backend.entity.ValidationStatus;
 import com.autopro.backend.exception.ResourceNotFoundException;
 import com.autopro.backend.repository.MechanicRepository;
 import com.autopro.backend.repository.UserRepository;
@@ -43,6 +44,22 @@ public class MechanicService {
         return toResponse(getOrCreateMechanicForCurrentUser(email));
     }
 
+    /**
+     * Bascule la disponibilité du mécanicien courant. Se rendre disponible
+     * exige un profil validé par un administrateur.
+     */
+    @Transactional
+    public MechanicResponse updateAvailability(String email, boolean available) {
+        Mechanic mechanic = getOrCreateMechanicForCurrentUser(email);
+        if (available && mechanic.getValidationStatus() != ValidationStatus.APPROVED) {
+            throw new SecurityException(
+                    "Votre profil doit être validé par un administrateur avant de recevoir des demandes");
+        }
+        mechanic.setIsAvailable(available);
+        mechanicRepository.save(mechanic);
+        return toResponse(mechanic);
+    }
+
     @Transactional
     public MechanicResponse updateMyProfile(String email, UpdateMechanicProfileRequest request) {
         Mechanic mechanic = getOrCreateMechanicForCurrentUser(email);
@@ -57,6 +74,11 @@ public class MechanicService {
             mechanic.setBio(request.getBio());
         }
         if (request.getIsAvailable() != null) {
+            if (request.getIsAvailable()
+                    && mechanic.getValidationStatus() != ValidationStatus.APPROVED) {
+                throw new SecurityException(
+                        "Votre profil doit être validé par un administrateur avant de recevoir des demandes");
+            }
             mechanic.setIsAvailable(request.getIsAvailable());
         }
         if (request.getLatitude() != null) {

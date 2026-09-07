@@ -1,6 +1,7 @@
 package com.autopro.backend.controller;
 
 import com.autopro.backend.dto.mechanic.MechanicResponse;
+import com.autopro.backend.dto.mechanic.UpdateAvailabilityRequest;
 import com.autopro.backend.dto.mechanic.UpdateMechanicProfileRequest;
 import com.autopro.backend.service.MechanicService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -63,5 +64,15 @@ public class MechanicController {
             Authentication authentication,
             @Valid @RequestBody UpdateMechanicProfileRequest request) {
         return ResponseEntity.ok(mechanicService.updateMyProfile(authentication.getName(), request));
+    }
+
+    @PatchMapping("/me/availability")
+    @PreAuthorize("hasAuthority('ROLE_MECHANIC')")
+    @Operation(summary = "Basculer ma disponibilité (profil validé requis pour se rendre disponible)")
+    public ResponseEntity<MechanicResponse> updateAvailability(
+            Authentication authentication,
+            @Valid @RequestBody UpdateAvailabilityRequest request) {
+        return ResponseEntity.ok(
+                mechanicService.updateAvailability(authentication.getName(), request.getAvailable()));
     }
 }
