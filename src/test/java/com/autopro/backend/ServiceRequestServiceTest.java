@@ -83,6 +83,27 @@ class ServiceRequestServiceTest {
 
         assertThat(response.getStatus()).isEqualTo(ServiceRequestStatus.PENDING);
         assertThat(response.getClientId()).isEqualTo(1L);
+        assertThat(response.getProblemType()).isEqualTo(ProblemType.OTHER);
+        assertThat(response.getIsEmergency()).isFalse();
+    }
+
+    @Test
+    void create_keepsProblemTypeContactPhoneAndEmergencyFlag() {
+        User client = buildUser(1L, "ROLE_CLIENT");
+        when(userRepository.findByEmail("user1@example.com")).thenReturn(Optional.of(client));
+        when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CreateServiceRequestRequest request = new CreateServiceRequestRequest();
+        request.setDescription("Batterie à plat depuis ce matin");
+        request.setProblemType(ProblemType.BATTERY);
+        request.setContactPhone("770001122");
+        request.setIsEmergency(true);
+
+        ServiceRequestResponse response = serviceRequestService.create("user1@example.com", request);
+
+        assertThat(response.getProblemType()).isEqualTo(ProblemType.BATTERY);
+        assertThat(response.getContactPhone()).isEqualTo("770001122");
+        assertThat(response.getIsEmergency()).isTrue();
     }
 
     @Test

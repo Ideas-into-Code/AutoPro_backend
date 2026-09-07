@@ -1,6 +1,7 @@
 package com.autopro.backend.dto.servicerequest;
 
 import com.autopro.backend.dto.payment.PaymentResponse;
+import com.autopro.backend.entity.ProblemType;
 import com.autopro.backend.entity.ServiceRequestStatus;
 import lombok.Builder;
 import lombok.Data;
@@ -24,6 +25,9 @@ public class ServiceRequestResponse {
     private String vehicleLabel;
 
     private String description;
+    private ProblemType problemType;
+    private String contactPhone;
+    private Boolean isEmergency;
     private ServiceRequestStatus status;
 
     /** Prix convenu, {@code null} tant que le mécanicien ne l'a pas fixé. */

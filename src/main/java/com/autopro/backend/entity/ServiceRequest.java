@@ -47,6 +47,20 @@ public class ServiceRequest {
     private String description;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "problem_type", nullable = false, length = 20)
+    @Builder.Default
+    private ProblemType problemType = ProblemType.OTHER;
+
+    /** Numéro de rappel du client (souvent en panne, injoignable autrement). */
+    @Column(name = "contact_phone", length = 20)
+    private String contactPhone;
+
+    /** Immobilisation : le mécanicien priorise ces demandes. */
+    @Column(name = "is_emergency", nullable = false)
+    @Builder.Default
+    private Boolean isEmergency = false;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
     private ServiceRequestStatus status = ServiceRequestStatus.PENDING;

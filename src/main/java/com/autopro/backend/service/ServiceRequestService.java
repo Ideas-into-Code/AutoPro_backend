@@ -69,6 +69,12 @@ public class ServiceRequestService {
                 .client(client)
                 .vehicle(vehicle)
                 .description(request.getDescription())
+                .problemType(request.getProblemType() != null
+                        ? request.getProblemType() : ProblemType.OTHER)
+                .contactPhone(request.getContactPhone() != null && !request.getContactPhone().isBlank()
+                        ? request.getContactPhone().trim()
+                        : client.getPhone())
+                .isEmergency(Boolean.TRUE.equals(request.getIsEmergency()))
                 .address(request.getAddress())
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
@@ -79,6 +85,7 @@ public class ServiceRequestService {
         return toResponse(serviceRequest);
     }
 
+    @Transactional(readOnly = true)
     public List<ServiceRequestResponse> getMyRequests(String email) {
         User user = getUser(email);
         String roleName = user.getRole().getName();
@@ -109,6 +116,7 @@ public class ServiceRequestService {
         return requests.stream().map(this::toResponse).collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public ServiceRequestResponse getById(String email, Long id) {
         ServiceRequest sr = findByIdOrThrow(id);
         checkReadAccess(email, sr);
@@ -245,6 +253,9 @@ public class ServiceRequestService {
                         ? sr.getVehicle().getBrand() + " " + sr.getVehicle().getModel()
                         : null)
                 .description(sr.getDescription())
+                .problemType(sr.getProblemType())
+                .contactPhone(sr.getContactPhone())
+                .isEmergency(sr.getIsEmergency())
                 .status(sr.getStatus())
                 .price(sr.getPrice())
                 .payment(paymentRepository.findByServiceRequestId(sr.getId())
