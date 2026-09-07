@@ -18,5 +18,12 @@ public class ChatRoomDTO {
     private String name;
     private boolean isGroup;
     private List<Long> participantIds;
+    private List<ParticipantSummary> participants;
+
+    /** Aperçu du dernier message, pour la liste des conversations. */
+    private String lastMessageContent;
+    private Long lastMessageSenderId;
+    private LocalDateTime lastMessageAt;
+
     private LocalDateTime createdAt;
 }

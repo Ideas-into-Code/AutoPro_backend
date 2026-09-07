@@ -245,6 +245,7 @@ public class ServiceRequestService {
                 .clientId(sr.getClient().getId())
                 .clientName(sr.getClient().getFirstName() + " " + sr.getClient().getLastName())
                 .mechanicId(sr.getMechanic() != null ? sr.getMechanic().getId() : null)
+                .mechanicUserId(sr.getMechanic() != null ? sr.getMechanic().getUser().getId() : null)
                 .mechanicName(sr.getMechanic() != null
                         ? sr.getMechanic().getUser().getFirstName() + " " + sr.getMechanic().getUser().getLastName()
                         : null)

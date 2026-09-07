@@ -3,6 +3,7 @@ package com.autopro.backend.controller;
 import com.autopro.backend.dto.chat.ChatMessageDTO;
 import com.autopro.backend.dto.chat.ChatRoomDTO;
 import com.autopro.backend.dto.chat.CreateChatRoomRequest;
+import com.autopro.backend.dto.chat.CreateDirectRoomRequest;
 import com.autopro.backend.entity.User;
 import com.autopro.backend.exception.ResourceNotFoundException;
 import com.autopro.backend.repository.UserRepository;
@@ -32,6 +33,14 @@ public class ChatRestController {
                                                    Principal principal) {
         User creator = resolveUser(principal);
         return ResponseEntity.ok(chatService.createChatRoom(request, creator));
+    }
+
+    @Operation(summary = "Get or create a private conversation with another user")
+    @PostMapping("/rooms/direct")
+    public ResponseEntity<ChatRoomDTO> getOrCreateDirectRoom(
+            @Valid @RequestBody CreateDirectRoomRequest request, Principal principal) {
+        return ResponseEntity.ok(
+                chatService.getOrCreateDirectRoom(resolveUser(principal), request.getPeerId()));
     }
 
     @Operation(summary = "List all chat rooms for the authenticated user")

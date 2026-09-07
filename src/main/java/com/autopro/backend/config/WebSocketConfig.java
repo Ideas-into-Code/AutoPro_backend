@@ -35,6 +35,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // WebSocket natif : utilisé par le frontend Angular (client @stomp/stompjs).
+        registry.addEndpoint("/ws")
+                .setAllowedOriginPatterns("*");
+        // Repli SockJS pour les navigateurs/réseaux qui ne tiennent pas une
+        // connexion WebSocket.
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*")
                 .withSockJS();

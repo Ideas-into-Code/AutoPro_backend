@@ -19,6 +19,7 @@ public class ServiceRequestResponse {
     private String clientName;
 
     private Long mechanicId;
+    private Long mechanicUserId;
     private String mechanicName;
 
     private Long vehicleId;
