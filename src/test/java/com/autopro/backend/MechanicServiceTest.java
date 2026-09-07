@@ -4,6 +4,7 @@ import com.autopro.backend.dto.mechanic.MechanicResponse;
 import com.autopro.backend.dto.mechanic.UpdateMechanicProfileRequest;
 import com.autopro.backend.entity.Mechanic;
 import com.autopro.backend.entity.User;
+import com.autopro.backend.entity.ValidationStatus;
 import com.autopro.backend.exception.ResourceNotFoundException;
 import com.autopro.backend.repository.MechanicRepository;
 import com.autopro.backend.repository.UserRepository;
@@ -95,6 +96,48 @@ class MechanicServiceTest {
         assertThat(response.getIsAvailable()).isFalse();
         assertThat(mechanic.getExperienceYears()).isEqualTo(2); // non fourni : inchangé
         assertThat(mechanic.getSpecialization()).isEqualTo("Freins"); // non fourni : inchangé
+    }
+
+    @Test
+    void updateAvailability_rejectsGoingOnlineWhenNotApproved() {
+        User user = buildUser(1L);
+        Mechanic mechanic = buildMechanic(10L, user);
+        mechanic.setValidationStatus(ValidationStatus.PENDING);
+        when(userRepository.findByEmail("jean1@example.com")).thenReturn(Optional.of(user));
+        when(mechanicRepository.findByUserId(1L)).thenReturn(Optional.of(mechanic));
+
+        assertThatThrownBy(() -> mechanicService.updateAvailability("jean1@example.com", true))
+                .isInstanceOf(SecurityException.class);
+        verify(mechanicRepository, never()).save(any());
+    }
+
+    @Test
+    void updateAvailability_allowsGoingOnlineWhenApproved() {
+        User user = buildUser(1L);
+        Mechanic mechanic = buildMechanic(10L, user);
+        mechanic.setValidationStatus(ValidationStatus.APPROVED);
+        mechanic.setIsAvailable(false);
+        when(userRepository.findByEmail("jean1@example.com")).thenReturn(Optional.of(user));
+        when(mechanicRepository.findByUserId(1L)).thenReturn(Optional.of(mechanic));
+        when(mechanicRepository.save(mechanic)).thenReturn(mechanic);
+
+        MechanicResponse response = mechanicService.updateAvailability("jean1@example.com", true);
+
+        assertThat(response.getIsAvailable()).isTrue();
+    }
+
+    @Test
+    void updateAvailability_alwaysAllowsGoingOffline() {
+        User user = buildUser(1L);
+        Mechanic mechanic = buildMechanic(10L, user);
+        mechanic.setValidationStatus(ValidationStatus.PENDING);
+        when(userRepository.findByEmail("jean1@example.com")).thenReturn(Optional.of(user));
+        when(mechanicRepository.findByUserId(1L)).thenReturn(Optional.of(mechanic));
+        when(mechanicRepository.save(mechanic)).thenReturn(mechanic);
+
+        MechanicResponse response = mechanicService.updateAvailability("jean1@example.com", false);
+
+        assertThat(response.getIsAvailable()).isFalse();
     }
 
     @Test
