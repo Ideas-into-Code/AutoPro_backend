@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class MechanicService {
 
     private final MechanicRepository mechanicRepository;
@@ -37,6 +38,7 @@ public class MechanicService {
         return toResponse(mechanic);
     }
 
+    @Transactional
     public MechanicResponse getMyProfile(String email) {
         return toResponse(getOrCreateMechanicForCurrentUser(email));
     }
@@ -107,12 +109,17 @@ public class MechanicService {
                 .userId(user.getId())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
+                .fullName(user.getFirstName() + " " + user.getLastName())
                 .email(user.getEmail())
                 .phone(user.getPhone())
                 .specialization(mechanic.getSpecialization())
                 .experienceYears(mechanic.getExperienceYears())
                 .bio(mechanic.getBio())
                 .isAvailable(mechanic.getIsAvailable())
+                .validationStatus(mechanic.getValidationStatus() != null
+                        ? mechanic.getValidationStatus().name() : null)
+                .averageRating(mechanic.getAverageRating())
+                .reviewCount(mechanic.getReviewCount())
                 .latitude(mechanic.getLatitude())
                 .longitude(mechanic.getLongitude())
                 .distanceKm(distanceKm)
