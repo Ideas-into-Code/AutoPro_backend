@@ -26,4 +26,12 @@ public class SignUpRequest {
 
     /** ROLE_CLIENT, ROLE_MECHANIC ou ROLE_ADMIN. Défaut : ROLE_CLIENT */
     private String role;
+
+    // --- Champs optionnels, utilisés uniquement si role == ROLE_MECHANIC ---
+
+    private String specialization;
+
+    private Integer experienceYears;
+
+    private String bio;
 }

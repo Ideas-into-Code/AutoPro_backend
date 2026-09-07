@@ -1,9 +1,12 @@
 package com.autopro.backend.service;
 
 import com.autopro.backend.dto.auth.*;
+import com.autopro.backend.dto.user.UserResponse;
+import com.autopro.backend.entity.Mechanic;
 import com.autopro.backend.entity.PasswordResetToken;
 import com.autopro.backend.entity.Role;
 import com.autopro.backend.entity.User;
+import com.autopro.backend.repository.MechanicRepository;
 import com.autopro.backend.repository.PasswordResetTokenRepository;
 import com.autopro.backend.repository.RoleRepository;
 import com.autopro.backend.repository.UserRepository;
@@ -27,6 +30,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final MechanicRepository mechanicRepository;
     private final PasswordResetTokenRepository resetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -58,16 +62,32 @@ public class AuthService {
                 .build();
         userRepository.save(user);
 
-        return buildAuthResponse(user.getEmail(), passwordEncoder.encode(request.getPassword()), role.getName());
+        // Un compte mécanicien n'est utilisable qu'avec un profil Mechanic associé.
+        // Il est créé ici, en attente de validation par un admin (validationStatus = PENDING)
+        // et indisponible (isAvailable = false) tant qu'il n'est pas approuvé.
+        if ("ROLE_MECHANIC".equals(requestedRole)) {
+            Mechanic mechanic = Mechanic.builder()
+                    .user(user)
+                    .specialization(request.getSpecialization())
+                    .experienceYears(request.getExperienceYears())
+                    .bio(request.getBio())
+                    .isAvailable(false)
+                    .build();
+            mechanicRepository.save(mechanic);
+            user.setMechanic(mechanic);
+        }
+
+        return buildAuthResponse(user);
     }
 
+    @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        return buildAuthResponse(user.getEmail(), user.getPassword(), user.getRole().getName());
+        return buildAuthResponse(user);
     }
 
     @Transactional
@@ -107,16 +127,16 @@ public class AuthService {
         resetTokenRepository.save(resetToken);
     }
 
-    private AuthResponse buildAuthResponse(String email, String encodedPassword, String roleName) {
+    private AuthResponse buildAuthResponse(User user) {
+        String roleName = user.getRole().getName();
         var springUser = new org.springframework.security.core.userdetails.User(
-                email, encodedPassword,
+                user.getEmail(), user.getPassword(),
                 List.of(new SimpleGrantedAuthority(roleName))
         );
         return AuthResponse.builder()
                 .token(jwtService.generateToken(springUser))
                 .type("Bearer")
-                .email(email)
-                .role(roleName)
+                .user(UserResponse.from(user))
                 .build();
     }
 }
