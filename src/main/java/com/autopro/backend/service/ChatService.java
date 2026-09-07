@@ -15,6 +15,8 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -49,13 +51,50 @@ public class ChatService {
         return chatRoomRepository.findByParticipantId(user.getId())
                 .stream()
                 .map(this::toChatRoomDTO)
+                // Conversation la plus active en tête (dernier message, sinon date de création).
+                .sorted(Comparator.comparing(
+                        (ChatRoomDTO r) -> r.getLastMessageAt() != null
+                                ? r.getLastMessageAt() : r.getCreatedAt(),
+                        Comparator.nullsLast(Comparator.naturalOrder())).reversed())
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Récupère la conversation privée entre l'utilisateur et {@code peerId},
+     * ou la crée si elle n'existe pas encore.
+     */
+    @Transactional
+    public ChatRoomDTO getOrCreateDirectRoom(User me, Long peerId) {
+        if (peerId.equals(me.getId())) {
+            throw new IllegalArgumentException("Impossible d'ouvrir une conversation avec soi-même");
+        }
+        User peer = userRepository.findById(peerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable: " + peerId));
+
+        return chatRoomRepository.findPrivateChatRoom(me.getId(), peerId)
+                .map(this::toChatRoomDTO)
+                .orElseGet(() -> {
+                    List<User> participants = new ArrayList<>();
+                    participants.add(me);
+                    participants.add(peer);
+                    ChatRoom room = ChatRoom.builder()
+                            .isGroup(false)
+                            .participants(participants)
+                            .build();
+                    return toChatRoomDTO(chatRoomRepository.save(room));
+                });
     }
 
     @Transactional
     public ChatMessageDTO sendMessage(SendMessageRequest request, User sender) {
         ChatRoom chatRoom = chatRoomRepository.findById(request.getChatRoomId())
                 .orElseThrow(() -> new ResourceNotFoundException("Chat room not found"));
+
+        boolean isMember = chatRoom.getParticipants().stream()
+                .anyMatch(p -> p.getId().equals(sender.getId()));
+        if (!isMember) {
+            throw new SecurityException("Vous ne participez pas à cette conversation");
+        }
 
         ChatMessage message = ChatMessage.builder()
                 .chatRoom(chatRoom)
@@ -108,6 +147,7 @@ public class ChatService {
     }
 
     private ChatRoomDTO toChatRoomDTO(ChatRoom chatRoom) {
+        var last = chatMessageRepository.findFirstByChatRoomIdOrderBySentAtDesc(chatRoom.getId());
         return ChatRoomDTO.builder()
                 .id(chatRoom.getId())
                 .name(chatRoom.getName())
@@ -115,6 +155,12 @@ public class ChatService {
                 .participantIds(chatRoom.getParticipants().stream()
                         .map(User::getId)
                         .collect(Collectors.toList()))
+                .participants(chatRoom.getParticipants().stream()
+                        .map(ParticipantSummary::from)
+                        .collect(Collectors.toList()))
+                .lastMessageContent(last.map(ChatMessage::getContent).orElse(null))
+                .lastMessageSenderId(last.map(m -> m.getSender().getId()).orElse(null))
+                .lastMessageAt(last.map(ChatMessage::getSentAt).orElse(null))
                 .createdAt(chatRoom.getCreatedAt())
                 .build();
     }
