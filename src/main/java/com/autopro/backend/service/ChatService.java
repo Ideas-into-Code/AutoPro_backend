@@ -3,6 +3,7 @@ package com.autopro.backend.service;
 import com.autopro.backend.dto.chat.*;
 import com.autopro.backend.entity.ChatMessage;
 import com.autopro.backend.entity.ChatRoom;
+import com.autopro.backend.entity.NotificationType;
 import com.autopro.backend.entity.User;
 import com.autopro.backend.exception.ResourceNotFoundException;
 import com.autopro.backend.repository.ChatMessageRepository;
@@ -28,6 +29,7 @@ public class ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final NotificationService notificationService;
 
     @Transactional
     public ChatRoomDTO createChatRoom(CreateChatRoomRequest request, User creator) {
@@ -109,6 +111,17 @@ public class ChatService {
         ChatMessageDTO dto = toChatMessageDTO(message);
 
         messagingTemplate.convertAndSend("/topic/chat/" + chatRoom.getId(), dto);
+
+        // Notifier les autres participants (utile quand la conversation n'est pas ouverte).
+        String apercu = request.getContent().length() > 80
+                ? request.getContent().substring(0, 77) + "…" : request.getContent();
+        for (User participant : chatRoom.getParticipants()) {
+            if (!participant.getId().equals(sender.getId())) {
+                notificationService.notify(participant, NotificationType.NEW_MESSAGE,
+                        "Message de " + sender.getFirstName(), apercu,
+                        "/messages?conversation=" + chatRoom.getId());
+            }
+        }
         return dto;
     }
 

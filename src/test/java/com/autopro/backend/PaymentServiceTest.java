@@ -30,6 +30,7 @@ class PaymentServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private MechanicRepository mechanicRepository;
     @Mock private InterventionRepository interventionRepository;
+    @Mock private com.autopro.backend.service.NotificationService notificationService;
 
     @InjectMocks private PaymentService paymentService;
 
