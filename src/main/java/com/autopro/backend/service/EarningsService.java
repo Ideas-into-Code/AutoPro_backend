@@ -1,5 +1,6 @@
 package com.autopro.backend.service;
 
+import com.autopro.backend.dto.earnings.DailyEarningDTO;
 import com.autopro.backend.dto.earnings.EarningsReportDTO;
 import com.autopro.backend.entity.InterventionStatus;
 import com.autopro.backend.entity.Mechanic;
@@ -14,6 +15,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.WeekFields;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 @Service
@@ -68,7 +71,20 @@ public class EarningsService {
                 .weeklyEarnings(weekly)
                 .monthlyEarnings(monthly)
                 .completedInterventions(count)
+                .dailyBreakdown(lastSevenDays(mechanic.getId(), reference))
                 .build();
+    }
+
+    /** Gains de chacun des 7 derniers jours (jour de référence inclus). */
+    private List<DailyEarningDTO> lastSevenDays(Long mechanicId, LocalDate reference) {
+        List<DailyEarningDTO> days = new ArrayList<>(7);
+        for (int i = 6; i >= 0; i--) {
+            LocalDate day = reference.minusDays(i);
+            BigDecimal amount = sumEarnings(mechanicId,
+                    day.atStartOfDay(), day.plusDays(1).atStartOfDay().minusNanos(1));
+            days.add(new DailyEarningDTO(day, amount));
+        }
+        return days;
     }
 
     /**
