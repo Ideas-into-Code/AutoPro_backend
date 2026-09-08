@@ -111,6 +111,41 @@ class AdminServiceTest {
     }
 
     @Test
+    void setUserActive_suspendsUser() {
+        User user = buildUser(5L, "ROLE_CLIENT");
+        user.setIsActive(true);
+        when(userRepository.findById(5L)).thenReturn(Optional.of(user));
+        when(userRepository.save(user)).thenReturn(user);
+
+        com.autopro.backend.dto.admin.UserDetailDTO result = adminService.setUserActive(5L, false);
+
+        assertThat(result.getIsActive()).isFalse();
+        assertThat(user.getIsActive()).isFalse();
+        verify(notificationService).notify(eq(user), any(), anyString(), anyString(), any());
+    }
+
+    @Test
+    void setUserActive_reactivatesUser() {
+        User user = buildUser(6L, "ROLE_CLIENT");
+        user.setIsActive(false);
+        when(userRepository.findById(6L)).thenReturn(Optional.of(user));
+        when(userRepository.save(user)).thenReturn(user);
+
+        com.autopro.backend.dto.admin.UserDetailDTO result = adminService.setUserActive(6L, true);
+
+        assertThat(result.getIsActive()).isTrue();
+    }
+
+    @Test
+    void setUserActive_throwsWhenNotFound() {
+        when(userRepository.findById(404L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> adminService.setUserActive(404L, false))
+                .isInstanceOf(com.autopro.backend.exception.ResourceNotFoundException.class)
+                .hasMessageContaining("404");
+    }
+
+    @Test
     void getMechanicsByStatus_returnsPendingList() {
         Mechanic m1 = buildMechanic(1L, ValidationStatus.PENDING);
         Mechanic m2 = buildMechanic(2L, ValidationStatus.PENDING);

@@ -5,6 +5,7 @@ import com.autopro.backend.dto.admin.MechanicDetailDTO;
 import com.autopro.backend.dto.admin.UserDetailDTO;
 import com.autopro.backend.entity.Mechanic;
 import com.autopro.backend.entity.NotificationType;
+import com.autopro.backend.entity.User;
 import com.autopro.backend.entity.ValidationStatus;
 import com.autopro.backend.exception.ResourceNotFoundException;
 import com.autopro.backend.repository.MechanicRepository;
@@ -57,6 +58,23 @@ public class AdminService {
                 "/mecanicien/profil");
 
         return MechanicDetailDTO.from(mechanic);
+    }
+
+    @Transactional
+    public UserDetailDTO setUserActive(Long userId, boolean active) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable : " + userId));
+        user.setIsActive(active);
+        userRepository.save(user);
+
+        notificationService.notify(user, NotificationType.GENERAL,
+                active ? "Compte réactivé" : "Compte suspendu",
+                active
+                        ? "Votre compte a été réactivé. Vous pouvez de nouveau utiliser AutoPro."
+                        : "Votre compte a été suspendu par un administrateur. Contactez l'assistance pour en savoir plus.",
+                null);
+
+        return UserDetailDTO.from(user);
     }
 
     public AdminStatsDTO getSystemStats() {

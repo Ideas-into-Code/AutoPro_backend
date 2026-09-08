@@ -2,6 +2,7 @@ package com.autopro.backend.controller;
 
 import com.autopro.backend.dto.admin.AdminStatsDTO;
 import com.autopro.backend.dto.admin.MechanicDetailDTO;
+import com.autopro.backend.dto.admin.SetUserActiveRequest;
 import com.autopro.backend.dto.admin.UserDetailDTO;
 import com.autopro.backend.dto.admin.ValidateMechanicRequest;
 import com.autopro.backend.entity.ValidationStatus;
@@ -53,6 +54,14 @@ public class AdminController {
             @PathVariable Long id,
             @Valid @RequestBody ValidateMechanicRequest request) {
         return ResponseEntity.ok(adminService.validateMechanic(id, request.getApproved()));
+    }
+
+    @PatchMapping("/users/{id}/status")
+    @Operation(summary = "Suspendre ou réactiver le compte d'un utilisateur")
+    public ResponseEntity<UserDetailDTO> setUserActive(
+            @PathVariable Long id,
+            @Valid @RequestBody SetUserActiveRequest request) {
+        return ResponseEntity.ok(adminService.setUserActive(id, request.getActive()));
     }
 
     @GetMapping("/stats")
