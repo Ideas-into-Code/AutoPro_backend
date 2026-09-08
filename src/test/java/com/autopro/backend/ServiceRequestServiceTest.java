@@ -47,6 +47,9 @@ class ServiceRequestServiceTest {
     @Mock
     private PaymentService paymentService;
 
+    @Mock
+    private com.autopro.backend.service.NotificationService notificationService;
+
     @InjectMocks
     private ServiceRequestService serviceRequestService;
 

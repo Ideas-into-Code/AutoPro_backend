@@ -4,6 +4,7 @@ import com.autopro.backend.dto.admin.AdminStatsDTO;
 import com.autopro.backend.dto.admin.MechanicDetailDTO;
 import com.autopro.backend.dto.admin.UserDetailDTO;
 import com.autopro.backend.entity.Mechanic;
+import com.autopro.backend.entity.NotificationType;
 import com.autopro.backend.entity.ValidationStatus;
 import com.autopro.backend.exception.ResourceNotFoundException;
 import com.autopro.backend.repository.MechanicRepository;
@@ -21,6 +22,7 @@ public class AdminService {
 
     private final UserRepository userRepository;
     private final MechanicRepository mechanicRepository;
+    private final NotificationService notificationService;
 
     public List<UserDetailDTO> getAllUsers() {
         return userRepository.findAll().stream()
@@ -46,6 +48,14 @@ public class AdminService {
                 .orElseThrow(() -> new ResourceNotFoundException("Mécanicien introuvable : " + mechanicId));
         mechanic.setValidationStatus(approved ? ValidationStatus.APPROVED : ValidationStatus.REJECTED);
         mechanicRepository.save(mechanic);
+
+        notificationService.notify(mechanic.getUser(), NotificationType.MECHANIC_VALIDATED,
+                approved ? "Profil validé" : "Profil refusé",
+                approved
+                        ? "Votre profil a été validé. Vous pouvez vous rendre disponible et recevoir des demandes."
+                        : "Votre profil n'a pas été validé. Contactez l'assistance pour en savoir plus.",
+                "/mecanicien/profil");
+
         return MechanicDetailDTO.from(mechanic);
     }
 

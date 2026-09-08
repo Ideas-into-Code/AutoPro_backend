@@ -51,6 +51,7 @@ public class ServiceRequestService {
     private final VehicleRepository vehicleRepository;
     private final PaymentRepository paymentRepository;
     private final PaymentService paymentService;
+    private final NotificationService notificationService;
 
     @Transactional
     public ServiceRequestResponse create(String email, CreateServiceRequestRequest request) {
@@ -166,7 +167,40 @@ public class ServiceRequestService {
             paymentService.cancelForRequest(sr);
         }
 
+        notifyStatusChange(sr, request.getStatus(), user);
+
         return toResponse(sr);
+    }
+
+    /** Prévient la partie concernée d'un changement de statut de la demande. */
+    private void notifyStatusChange(ServiceRequest sr, ServiceRequestStatus to, User actor) {
+        User client = sr.getClient();
+        User mechanicUser = sr.getMechanic() != null ? sr.getMechanic().getUser() : null;
+        String link = "/demandes/" + sr.getId();
+
+        switch (to) {
+            case ACCEPTED -> notificationService.notify(client, NotificationType.REQUEST_ACCEPTED,
+                    "Demande acceptée",
+                    (mechanicUser != null ? mechanicUser.getFirstName() : "Un mécanicien")
+                            + " prend en charge votre demande.", link);
+            case IN_PROGRESS -> notificationService.notify(client, NotificationType.REQUEST_IN_PROGRESS,
+                    "Intervention démarrée", "Le mécanicien a commencé l'intervention.", link);
+            case COMPLETED -> notificationService.notify(client, NotificationType.REQUEST_COMPLETED,
+                    "Intervention terminée",
+                    "Montant à régler en espèces : "
+                            + (sr.getPrice() != null ? sr.getPrice().toPlainString() : "-") + " FCFA.", link);
+            case CANCELLED -> {
+                // Prévenir l'autre partie que celle qui a annulé.
+                if (actor.getId().equals(client.getId())) {
+                    notificationService.notify(mechanicUser, NotificationType.REQUEST_CANCELLED,
+                            "Demande annulée", "Le client a annulé sa demande.", link);
+                } else {
+                    notificationService.notify(client, NotificationType.REQUEST_CANCELLED,
+                            "Demande annulée", "Votre demande a été annulée.", link);
+                }
+            }
+            default -> { /* PENDING : rien */ }
+        }
     }
 
     /**

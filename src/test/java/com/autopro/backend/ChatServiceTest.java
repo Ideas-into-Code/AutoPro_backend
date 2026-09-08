@@ -34,6 +34,7 @@ class ChatServiceTest {
     @Mock private ChatMessageRepository chatMessageRepository;
     @Mock private UserRepository userRepository;
     @Mock private SimpMessagingTemplate messagingTemplate;
+    @Mock private com.autopro.backend.service.NotificationService notificationService;
 
     @InjectMocks private ChatService chatService;
 

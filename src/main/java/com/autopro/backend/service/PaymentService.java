@@ -35,6 +35,7 @@ public class PaymentService {
     private final UserRepository userRepository;
     private final MechanicRepository mechanicRepository;
     private final InterventionRepository interventionRepository;
+    private final NotificationService notificationService;
 
     /**
      * Crée le paiement en attente d'une demande qui vient d'être terminée.
@@ -116,6 +117,12 @@ public class PaymentService {
                     .interventionDate(payment.getCollectedAt())
                     .build());
         }
+
+        notificationService.notify(request.getClient(), NotificationType.PAYMENT_COLLECTED,
+                "Paiement enregistré",
+                "Le mécanicien a confirmé la réception de "
+                        + payment.getAmount().toPlainString() + " FCFA en espèces.",
+                "/demandes/" + request.getId());
 
         return PaymentResponse.from(payment);
     }

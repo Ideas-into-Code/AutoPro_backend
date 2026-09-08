@@ -28,6 +28,9 @@ class AdminServiceTest {
     @Mock
     private MechanicRepository mechanicRepository;
 
+    @Mock
+    private com.autopro.backend.service.NotificationService notificationService;
+
     @InjectMocks
     private AdminService adminService;
 
