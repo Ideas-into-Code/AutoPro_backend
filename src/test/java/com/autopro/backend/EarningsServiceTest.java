@@ -91,6 +91,8 @@ class EarningsServiceTest {
         assertThat(report.getCompletedInterventions()).isEqualTo(3L);
         assertThat(report.getFrom()).isEqualTo(LocalDate.of(2024, 6, 1));
         assertThat(report.getTo()).isEqualTo(LocalDate.of(2024, 6, 30));
+        assertThat(report.getDailyBreakdown()).hasSize(7);
+        assertThat(report.getDailyBreakdown().get(6).getDate()).isEqualTo(reference);
     }
 
     @Test
