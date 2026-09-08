@@ -41,6 +41,15 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+                // Découverte publique des mécaniciens : liste, recherche géo, fiche et avis
+                // sont consultables sans compte (on s'authentifie pour demander un service).
+                // `/api/mechanics/me` reste protégé (déclaré avant les motifs publics).
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/mechanics/me").authenticated()
+                .requestMatchers(org.springframework.http.HttpMethod.GET,
+                        "/api/mechanics",
+                        "/api/mechanics/nearby",
+                        "/api/mechanics/{id:[0-9]+}",
+                        "/api/mechanics/{id:[0-9]+}/reviews").permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

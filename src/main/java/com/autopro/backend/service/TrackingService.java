@@ -7,6 +7,7 @@ import com.autopro.backend.repository.MechanicRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -24,6 +25,7 @@ public class TrackingService {
 
     private final ConcurrentMap<Long, Instant> lastBroadcastAt = new ConcurrentHashMap<>();
 
+    @Transactional
     public void publishLocation(LocationUpdateDTO update, User sender) {
         Mechanic mechanic = mechanicRepository.findByUserId(sender.getId())
                 .orElseThrow(() -> new IllegalStateException("Only mechanics can broadcast their location"));
@@ -39,6 +41,15 @@ public class TrackingService {
 
         if (!shouldBroadcast) {
             return;
+        }
+
+        // On mémorise la dernière position connue : la recherche géospatiale
+        // (`/nearby`) et le premier affichage de la carte de suivi côté client
+        // partent de là, avant même que le premier message temps réel n'arrive.
+        if (update.getLatitude() != null && update.getLongitude() != null) {
+            mechanic.setLatitude(update.getLatitude());
+            mechanic.setLongitude(update.getLongitude());
+            mechanicRepository.save(mechanic);
         }
 
         update.setMechanicId(mechanicId);
