@@ -149,10 +149,28 @@ class ServiceRequestServiceTest {
 
         UpdateServiceRequestStatusRequest request = new UpdateServiceRequestStatusRequest();
         request.setStatus(ServiceRequestStatus.CANCELLED);
+        request.setCancellationReason(com.autopro.backend.entity.CancellationReason.NO_LONGER_NEEDED);
 
         ServiceRequestResponse response = serviceRequestService.updateStatus("user1@example.com", 100L, request);
 
         assertThat(response.getStatus()).isEqualTo(ServiceRequestStatus.CANCELLED);
+        assertThat(response.getCancellationReason())
+                .isEqualTo(com.autopro.backend.entity.CancellationReason.NO_LONGER_NEEDED);
+    }
+
+    @Test
+    void updateStatus_cancellationRequiresAReason() {
+        User client = buildUser(1L, "ROLE_CLIENT");
+        ServiceRequest sr = buildRequest(100L, client, null, ServiceRequestStatus.PENDING);
+        when(serviceRequestRepository.findById(100L)).thenReturn(Optional.of(sr));
+        when(userRepository.findByEmail("user1@example.com")).thenReturn(Optional.of(client));
+
+        UpdateServiceRequestStatusRequest request = new UpdateServiceRequestStatusRequest();
+        request.setStatus(ServiceRequestStatus.CANCELLED);
+
+        assertThatThrownBy(() -> serviceRequestService.updateStatus("user1@example.com", 100L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("motif");
     }
 
     @Test

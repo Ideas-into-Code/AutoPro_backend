@@ -2,7 +2,10 @@ package com.autopro.backend.dto.servicerequest;
 
 import com.autopro.backend.entity.ProblemType;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
+
+import java.util.List;
 
 @Data
 public class CreateServiceRequestRequest {
@@ -27,4 +30,8 @@ public class CreateServiceRequestRequest {
     private Double latitude;
 
     private Double longitude;
+
+    /** Photos jointes (URLs déjà téléversées). Maximum 5. */
+    @Size(max = 5, message = "5 photos maximum")
+    private List<String> photoUrls;
 }
