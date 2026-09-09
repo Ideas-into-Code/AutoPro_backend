@@ -30,6 +30,13 @@ public class FileUploadController {
         return ResponseEntity.ok(fileUploadService.uploadProfilePicture(file));
     }
 
+    @PostMapping(value = "/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload d'une image générique (photo de panne — JPEG, PNG, WEBP, max 5 MB)")
+    public ResponseEntity<UploadResponse> uploadImage(
+            @RequestPart("file") MultipartFile file) throws IOException {
+        return ResponseEntity.ok(fileUploadService.uploadImage(file));
+    }
+
     @PostMapping(value = "/document", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload d'un document PDF (max 5 MB)")
     public ResponseEntity<UploadResponse> uploadDocument(

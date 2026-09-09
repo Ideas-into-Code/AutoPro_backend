@@ -79,6 +79,9 @@ public class ServiceRequestService {
                 .address(request.getAddress())
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
+                .photoUrls(request.getPhotoUrls() != null
+                        ? new java.util.ArrayList<>(request.getPhotoUrls())
+                        : new java.util.ArrayList<>())
                 .status(ServiceRequestStatus.PENDING)
                 .build();
 
@@ -155,6 +158,13 @@ public class ServiceRequestService {
         if (request.getStatus() == ServiceRequestStatus.COMPLETED && sr.getPrice() == null) {
             throw new IllegalArgumentException(
                     "Fixez le prix de l'intervention avant de la marquer comme terminée");
+        }
+
+        if (request.getStatus() == ServiceRequestStatus.CANCELLED) {
+            if (request.getCancellationReason() == null) {
+                throw new IllegalArgumentException("Indiquez un motif d'annulation");
+            }
+            sr.setCancellationReason(request.getCancellationReason());
         }
 
         sr.setStatus(request.getStatus());
@@ -303,6 +313,9 @@ public class ServiceRequestService {
                 .address(sr.getAddress())
                 .latitude(sr.getLatitude())
                 .longitude(sr.getLongitude())
+                .photoUrls(sr.getPhotoUrls() != null
+                        ? new java.util.ArrayList<>(sr.getPhotoUrls()) : java.util.List.of())
+                .cancellationReason(sr.getCancellationReason())
                 .createdAt(sr.getCreatedAt())
                 .updatedAt(sr.getUpdatedAt())
                 .build();

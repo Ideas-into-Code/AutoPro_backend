@@ -7,6 +7,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(
@@ -72,6 +74,19 @@ public class ServiceRequest {
      */
     @Column(name = "price", precision = 10, scale = 2)
     private BigDecimal price;
+
+    /** Photos jointes par le client (URLs Cloudinary). */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "service_request_photos",
+            joinColumns = @JoinColumn(name = "service_request_id"))
+    @Column(name = "url", length = 500, nullable = false)
+    @Builder.Default
+    private List<String> photoUrls = new ArrayList<>();
+
+    /** Motif d'annulation, renseigné uniquement quand {@code status == CANCELLED}. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cancellation_reason", length = 40)
+    private CancellationReason cancellationReason;
 
     @Column(name = "address", length = 255)
     private String address;

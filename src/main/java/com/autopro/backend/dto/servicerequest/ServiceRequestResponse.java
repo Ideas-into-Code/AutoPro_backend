@@ -1,6 +1,7 @@
 package com.autopro.backend.dto.servicerequest;
 
 import com.autopro.backend.dto.payment.PaymentResponse;
+import com.autopro.backend.entity.CancellationReason;
 import com.autopro.backend.entity.ProblemType;
 import com.autopro.backend.entity.ServiceRequestStatus;
 import lombok.Builder;
@@ -8,6 +9,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -40,6 +42,12 @@ public class ServiceRequestResponse {
     private String address;
     private Double latitude;
     private Double longitude;
+
+    /** Photos jointes par le client. */
+    private List<String> photoUrls;
+
+    /** Motif d'annulation, {@code null} sauf si la demande est annulée. */
+    private CancellationReason cancellationReason;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

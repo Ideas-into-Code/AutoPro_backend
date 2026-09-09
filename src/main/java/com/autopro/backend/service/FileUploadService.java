@@ -44,6 +44,21 @@ public class FileUploadService {
         return buildResponse(result);
     }
 
+    /**
+     * Image générique (photo d'une panne jointe à une demande). Redimensionnée
+     * pour limiter le poids, sans recadrage sur un visage.
+     */
+    public UploadResponse uploadImage(MultipartFile file) throws IOException {
+        validateFile(file, allowedImageTypes);
+        Map<?, ?> result = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
+                "folder",          "autopro/requests",
+                "resource_type",   "image",
+                "transformation",  new Transformation().width(1200).crop("limit").quality("auto"),
+                "allowed_formats", "jpg,jpeg,png,webp"
+        ));
+        return buildResponse(result);
+    }
+
     public UploadResponse uploadDocument(MultipartFile file) throws IOException {
         validateFile(file, allowedDocumentTypes);
         Map<?, ?> result = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
