@@ -11,4 +11,6 @@ public class UpdateMechanicProfileRequest {
     private Boolean isAvailable;
     private Double latitude;
     private Double longitude;
+    private String photoUrl;
+    private String openingHours;
 }

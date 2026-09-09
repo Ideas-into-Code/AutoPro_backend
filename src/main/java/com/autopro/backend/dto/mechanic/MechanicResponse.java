@@ -22,6 +22,13 @@ public class MechanicResponse {
     private String specialization;
     private Integer experienceYears;
     private String bio;
+
+    /** URL de la photo de profil, ou {@code null}. */
+    private String photoUrl;
+
+    /** Horaires d'ouverture en texte libre, ou {@code null}. */
+    private String openingHours;
+
     private Boolean isAvailable;
 
     /** PENDING, APPROVED ou REJECTED. Seul APPROVED vaut « vérifié ». */
