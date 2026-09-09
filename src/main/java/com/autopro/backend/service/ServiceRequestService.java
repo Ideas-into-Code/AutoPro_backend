@@ -176,27 +176,31 @@ public class ServiceRequestService {
     private void notifyStatusChange(ServiceRequest sr, ServiceRequestStatus to, User actor) {
         User client = sr.getClient();
         User mechanicUser = sr.getMechanic() != null ? sr.getMechanic().getUser() : null;
-        String link = "/demandes/" + sr.getId();
+        // Le lien dépend du destinataire : le client suit sa demande dans l'espace
+        // client, le mécanicien dans son propre espace. Un lien unique enverrait
+        // le mécanicien dans la coquille cliente (« on se perd dans les rôles »).
+        String clientLink = "/demandes/" + sr.getId();
+        String mechanicLink = "/mecanicien/demandes/" + sr.getId();
 
         switch (to) {
             case ACCEPTED -> notificationService.notify(client, NotificationType.REQUEST_ACCEPTED,
                     "Demande acceptée",
                     (mechanicUser != null ? mechanicUser.getFirstName() : "Un mécanicien")
-                            + " prend en charge votre demande.", link);
+                            + " prend en charge votre demande.", clientLink);
             case IN_PROGRESS -> notificationService.notify(client, NotificationType.REQUEST_IN_PROGRESS,
-                    "Intervention démarrée", "Le mécanicien a commencé l'intervention.", link);
+                    "Intervention démarrée", "Le mécanicien a commencé l'intervention.", clientLink);
             case COMPLETED -> notificationService.notify(client, NotificationType.REQUEST_COMPLETED,
                     "Intervention terminée",
                     "Montant à régler en espèces : "
-                            + (sr.getPrice() != null ? sr.getPrice().toPlainString() : "-") + " FCFA.", link);
+                            + (sr.getPrice() != null ? sr.getPrice().toPlainString() : "-") + " FCFA.", clientLink);
             case CANCELLED -> {
                 // Prévenir l'autre partie que celle qui a annulé.
                 if (actor.getId().equals(client.getId())) {
                     notificationService.notify(mechanicUser, NotificationType.REQUEST_CANCELLED,
-                            "Demande annulée", "Le client a annulé sa demande.", link);
+                            "Demande annulée", "Le client a annulé sa demande.", mechanicLink);
                 } else {
                     notificationService.notify(client, NotificationType.REQUEST_CANCELLED,
-                            "Demande annulée", "Votre demande a été annulée.", link);
+                            "Demande annulée", "Votre demande a été annulée.", clientLink);
                 }
             }
             default -> { /* PENDING : rien */ }
