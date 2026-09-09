@@ -56,6 +56,19 @@ class TrackingServiceTest {
     }
 
     @Test
+    void publishLocation_persistsLastKnownPosition() {
+        User user = buildUser(1L);
+        Mechanic mechanic = buildMechanic(10L, user);
+        when(mechanicRepository.findByUserId(1L)).thenReturn(Optional.of(mechanic));
+
+        trackingService.publishLocation(buildUpdate(), user);
+
+        org.assertj.core.api.Assertions.assertThat(mechanic.getLatitude()).isEqualTo(14.7167);
+        org.assertj.core.api.Assertions.assertThat(mechanic.getLongitude()).isEqualTo(-17.4677);
+        verify(mechanicRepository).save(mechanic);
+    }
+
+    @Test
     void publishLocation_throttlesRapidSuccessiveUpdates() {
         User user = buildUser(1L);
         Mechanic mechanic = buildMechanic(10L, user);
