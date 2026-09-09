@@ -89,13 +89,34 @@ class MechanicServiceTest {
         UpdateMechanicProfileRequest request = new UpdateMechanicProfileRequest();
         request.setBio("Nouveau bio");
         request.setIsAvailable(false);
+        request.setPhotoUrl("https://res.cloudinary.com/x/p.png");
+        request.setOpeningHours("Lun-Ven 8h-18h");
 
         MechanicResponse response = mechanicService.updateMyProfile("jean1@example.com", request);
 
         assertThat(response.getBio()).isEqualTo("Nouveau bio");
         assertThat(response.getIsAvailable()).isFalse();
+        assertThat(response.getPhotoUrl()).isEqualTo("https://res.cloudinary.com/x/p.png");
+        assertThat(response.getOpeningHours()).isEqualTo("Lun-Ven 8h-18h");
         assertThat(mechanic.getExperienceYears()).isEqualTo(2); // non fourni : inchangé
         assertThat(mechanic.getSpecialization()).isEqualTo("Freins"); // non fourni : inchangé
+    }
+
+    @Test
+    void updateMyProfile_blankPhotoUrlClearsIt() {
+        User user = buildUser(2L);
+        Mechanic mechanic = buildMechanic(20L, user);
+        mechanic.setPhotoUrl("https://old/p.png");
+        when(userRepository.findByEmail("jean2@example.com")).thenReturn(Optional.of(user));
+        when(mechanicRepository.findByUserId(2L)).thenReturn(Optional.of(mechanic));
+        when(mechanicRepository.save(mechanic)).thenReturn(mechanic);
+
+        UpdateMechanicProfileRequest request = new UpdateMechanicProfileRequest();
+        request.setPhotoUrl("");
+
+        mechanicService.updateMyProfile("jean2@example.com", request);
+
+        assertThat(mechanic.getPhotoUrl()).isNull();
     }
 
     @Test

@@ -87,6 +87,13 @@ public class MechanicService {
         if (request.getLongitude() != null) {
             mechanic.setLongitude(request.getLongitude());
         }
+        // Chaîne vide = « effacer » ; on distingue de `null` (« ne pas toucher »).
+        if (request.getPhotoUrl() != null) {
+            mechanic.setPhotoUrl(request.getPhotoUrl().isBlank() ? null : request.getPhotoUrl());
+        }
+        if (request.getOpeningHours() != null) {
+            mechanic.setOpeningHours(request.getOpeningHours().isBlank() ? null : request.getOpeningHours());
+        }
         mechanicRepository.save(mechanic);
         return toResponse(mechanic);
     }
@@ -137,6 +144,8 @@ public class MechanicService {
                 .specialization(mechanic.getSpecialization())
                 .experienceYears(mechanic.getExperienceYears())
                 .bio(mechanic.getBio())
+                .photoUrl(mechanic.getPhotoUrl())
+                .openingHours(mechanic.getOpeningHours())
                 .isAvailable(mechanic.getIsAvailable())
                 .validationStatus(mechanic.getValidationStatus() != null
                         ? mechanic.getValidationStatus().name() : null)

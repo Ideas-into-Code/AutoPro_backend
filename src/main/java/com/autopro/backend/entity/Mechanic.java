@@ -41,6 +41,14 @@ public class Mechanic {
     @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;
 
+    /** URL de la photo de profil (Cloudinary), affichée sur la fiche publique. */
+    @Column(name = "photo_url", length = 500)
+    private String photoUrl;
+
+    /** Horaires d'ouverture, texte libre (« Lun–Ven 8h–18h · Sam 9h–14h »). */
+    @Column(name = "opening_hours", length = 500)
+    private String openingHours;
+
     @Column(name = "is_available", nullable = false)
     @Builder.Default
     private Boolean isAvailable = true;
