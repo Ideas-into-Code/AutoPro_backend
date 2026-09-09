@@ -118,16 +118,26 @@ class AuthServiceTest {
     }
 
     @Test
-    void requestPasswordReset_generatesTokenWhenUserExists() {
+    void requestPasswordReset_persistsTokenButNeverReturnsItInTheResponse() {
         PasswordResetRequest request = new PasswordResetRequest();
         request.setEmail("jean@example.com");
         User user = User.builder().id(1L).email("jean@example.com").build();
         when(userRepository.findByEmail("jean@example.com")).thenReturn(Optional.of(user));
-        when(resetTokenRepository.save(any(PasswordResetToken.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        String token = authService.requestPasswordReset(request);
+        java.util.concurrent.atomic.AtomicReference<String> saved = new java.util.concurrent.atomic.AtomicReference<>();
+        when(resetTokenRepository.save(any(PasswordResetToken.class))).thenAnswer(inv -> {
+            saved.set(((PasswordResetToken) inv.getArgument(0)).getToken());
+            return inv.getArgument(0);
+        });
 
-        assertThat(token).isNotBlank();
+        String result = authService.requestPasswordReset(request);
+
+        // Un token est bien créé…
         verify(resetTokenRepository).save(any(PasswordResetToken.class));
+        assertThat(saved.get()).matches("[0-9a-f-]{36}");
+        // …mais la réponse HTTP ne le contient jamais (sinon prise de contrôle de compte).
+        assertThat(result).isEqualTo(
+                "Si un compte existe pour cet email, un lien de réinitialisation a été envoyé.");
+        assertThat(result).doesNotContain(saved.get());
     }
 }

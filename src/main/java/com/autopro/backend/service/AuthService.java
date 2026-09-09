@@ -12,6 +12,8 @@ import com.autopro.backend.repository.RoleRepository;
 import com.autopro.backend.repository.UserRepository;
 import com.autopro.backend.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -27,6 +29,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -90,12 +94,16 @@ public class AuthService {
         return buildAuthResponse(user);
     }
 
+    /** Message unique renvoyé par {@link #requestPasswordReset}, quel que soit le cas. */
+    private static final String RESET_ACK =
+            "Si un compte existe pour cet email, un lien de réinitialisation a été envoyé.";
+
     @Transactional
     public String requestPasswordReset(PasswordResetRequest request) {
         // Ne pas révéler si l'email existe ou non (énumération de comptes) : même réponse dans les deux cas.
         var userOpt = userRepository.findByEmail(request.getEmail());
         if (userOpt.isEmpty()) {
-            return "Si un compte existe pour cet email, un lien de réinitialisation a été envoyé.";
+            return RESET_ACK;
         }
         String token = UUID.randomUUID().toString();
         resetTokenRepository.save(PasswordResetToken.builder()
@@ -103,11 +111,15 @@ public class AuthService {
                 .user(userOpt.get())
                 .expiresAt(LocalDateTime.now().plusHours(1))
                 .build());
-        // TODO(#24/notifications) : envoyer le token par email au lieu de le renvoyer dans la réponse HTTP.
-        // Tant qu'il n'y a pas de service d'envoi d'email, le token est retourné directement ici, ce qui
-        // permet à quiconque de déclencher ET récupérer un reset token pour N'IMPORTE QUEL email (prise de
-        // contrôle de compte). Ne pas déployer ce endpoint tel quel en production.
-        return token;
+
+        // Le token n'est JAMAIS renvoyé dans la réponse HTTP : le faire permettait à quiconque
+        // de déclencher ET récupérer un token pour n'importe quel email (prise de contrôle de
+        // compte). Faute de service d'envoi d'email, il est journalisé côté serveur — un
+        // administrateur peut le transmettre manuellement. TODO(#24) : envoi par email.
+        log.info("Reset token généré pour {} : {} (à transmettre par email une fois le service en place)",
+                userOpt.get().getEmail(), token);
+
+        return RESET_ACK;
     }
 
     @Transactional
