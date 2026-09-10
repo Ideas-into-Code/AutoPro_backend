@@ -146,6 +146,9 @@
                 <files>
                     <file>${project.basedir}/.env</file>
                 </files>
+                <!-- En CI / conteneur / Render il n'y a pas de .env : les
+                     variables viennent de l'environnement. Absence non bloquante. -->
+                <quiet>true</quiet>
             </configuration>
         </execution>
     </executions>
